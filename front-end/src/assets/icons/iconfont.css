@@ -1,0 +1,45 @@
+@font-face {
+  font-family: "iconfont"; /* Project id 2555634 */
+  src: url('iconfont.svg?t=1676535531548#iconfont') format('svg');
+}
+
+.iconfont {
+  font-family: "iconfont" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-search:before {
+  content: "\e65c";
+}
+
+.icon-google:before {
+  content: "\e87a";
+}
+
+.icon-baidu:before {
+  content: "\eb49";
+}
+
+.icon-bing:before {
+  content: "\eb4c";
+}
+
+.icon-homelogo:before {
+  content: "\e605";
+}
+
+.icon-logo:before {
+  content: "\e603";
+}
+
+.icon-sun:before {
+  content: "\e600";
+}
+
+.icon-moon:before {
+  content: "\e7d7";
+}
+

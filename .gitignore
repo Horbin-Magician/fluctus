@@ -1,0 +1,22 @@
+# Useless
+__pycache__/
+
+node_modules
+dist
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Data
+datas
+
+# Server Setting
+uwsgi.ini
+venv/

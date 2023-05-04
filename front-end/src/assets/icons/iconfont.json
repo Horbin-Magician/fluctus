@@ -1,0 +1,65 @@
+{
+  "id": "2555634",
+  "name": "云边小铺",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "个人应用站",
+  "glyphs": [
+    {
+      "icon_id": "29947",
+      "name": "search",
+      "font_class": "search",
+      "unicode": "e65c",
+      "unicode_decimal": 58972
+    },
+    {
+      "icon_id": "4936951",
+      "name": "google",
+      "font_class": "google",
+      "unicode": "e87a",
+      "unicode_decimal": 59514
+    },
+    {
+      "icon_id": "15378167",
+      "name": "baidu",
+      "font_class": "baidu",
+      "unicode": "eb49",
+      "unicode_decimal": 60233
+    },
+    {
+      "icon_id": "15378180",
+      "name": "bing",
+      "font_class": "bing",
+      "unicode": "eb4c",
+      "unicode_decimal": 60236
+    },
+    {
+      "icon_id": "33601021",
+      "name": "homelogo",
+      "font_class": "homelogo",
+      "unicode": "e605",
+      "unicode_decimal": 58885
+    },
+    {
+      "icon_id": "33596562",
+      "name": "logo",
+      "font_class": "logo",
+      "unicode": "e603",
+      "unicode_decimal": 58883
+    },
+    {
+      "icon_id": "1842165",
+      "name": "sun",
+      "font_class": "sun",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "5127427",
+      "name": "moon",
+      "font_class": "moon",
+      "unicode": "e7d7",
+      "unicode_decimal": 59351
+    }
+  ]
+}
