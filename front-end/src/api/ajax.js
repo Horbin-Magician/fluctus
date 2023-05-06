@@ -6,7 +6,7 @@ import axios from 'axios'
 
 
 export default function ajax(url, data = {}, type = 'GET') {
-  API_SERVER_ROOT = 'https://api.fluctus.cc/'
+  let API_SERVER_ROOT = 'https://api.fluctus.cc/'
   url = API_SERVER_ROOT + url
   return new Promise((resolve) => {
     let promise
