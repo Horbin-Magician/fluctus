@@ -1,0 +1,32 @@
+name: Build and deploy to aliyun
+
+on:
+  push:
+    branches: ['master']
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install dependencies and build
+        run: |
+          cd front-end/
+          yarn
+          yarn build
+      - name: Deploy to aliyun
+        uses: easingthemes/ssh-deploy
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SEVER_KEY }}
+          ARGS: "-avz --delete"
+          SOURCE: "back-end/"
+          REMOTE_HOST: "fluctus.cc"
+          REMOTE_USER: "root"
+          TARGET: "/root/MyWeb/Server/"
