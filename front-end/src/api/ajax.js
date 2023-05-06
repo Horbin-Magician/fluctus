@@ -4,7 +4,10 @@
  */
 import axios from 'axios'
 
+API_SERVER_ROOT = 'https://api.fluctus.cc/'
+
 export default function ajax(url, data = {}, type = 'GET') {
+  url = API_SERVER_ROOT + url
   return new Promise((resolve) => {
     let promise
     if (type === 'GET') { //发送GET请求
