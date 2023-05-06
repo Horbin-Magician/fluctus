@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "prebuild": "del ..\\back-end\\www\\bp_web\\templates\\index.html && rd /s/q ..\\back-end\\www\\static\\dist",
+    "prebuild": "rm -r ..\\back-end\\www\\bp_web\\templates\\index.html ..\\back-end\\www\\static\\dist",
     "build": "vite build",
-    "postbuild": "move dist\\index.html ..\\back-end\\www\\bp_web\\templates\\ &&  move dist ..\\back-end\\www\\static\\",
+    "postbuild": "mv dist\\index.html ..\\back-end\\www\\bp_web\\templates\\ &&  move dist ..\\back-end\\www\\static\\",
     "preview": "vite preview --port 4173"
   },
   "dependencies": {
