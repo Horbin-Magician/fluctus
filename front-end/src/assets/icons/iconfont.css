@@ -1,6 +1,6 @@
 @font-face {
   font-family: "iconfont"; /* Project id 2555634 */
-  src: url('iconfont.svg?t=1676535531548#iconfont') format('svg');
+  src: url('iconfont.svg?t=1683384973073#iconfont') format('svg');
 }
 
 .iconfont {
@@ -12,7 +12,7 @@
 }
 
 .icon-search:before {
-  content: "\e65c";
+  content: "\e615";
 }
 
 .icon-google:before {
