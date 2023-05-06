@@ -25,8 +25,8 @@ jobs:
         uses: easingthemes/ssh-deploy@v3
         with:
           SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SEVER_KEY }}
-          ARGS: "-avz --delete"
-          SOURCE: "back-end/"
+          ARGS: "-avz"
+          SOURCE: "front-end/dist/"
           REMOTE_HOST: "fluctus.cc"
           REMOTE_USER: "root"
-          TARGET: "/root/MyWeb/Server/"
+          TARGET: "/root/Webs/Fluctus/"
