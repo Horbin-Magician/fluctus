@@ -22,7 +22,7 @@ jobs:
           yarn
           yarn build
       - name: Deploy to aliyun
-        uses: easingthemes/ssh-deploy
+        uses: easingthemes/ssh-deploy@v3
         with:
           SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SEVER_KEY }}
           ARGS: "-avz --delete"
