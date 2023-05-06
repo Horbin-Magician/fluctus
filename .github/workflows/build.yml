@@ -21,12 +21,21 @@ jobs:
           cd front-end/
           yarn
           yarn build
-      - name: Deploy to aliyun
+      - name: Deploy front-end to aliyun
         uses: easingthemes/ssh-deploy@v3
         with:
           SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SEVER_KEY }}
-          ARGS: "-avz"
+          ARGS: "-avz --delete"
           SOURCE: "front-end/dist/"
           REMOTE_HOST: "fluctus.cc"
           REMOTE_USER: "root"
           TARGET: "/root/Webs/Fluctus/"
+      - name: Deploy back-end to aliyun
+        uses: easingthemes/ssh-deploy@v3
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SEVER_KEY }}
+          ARGS: "-avz"
+          SOURCE: "back-end/"
+          REMOTE_HOST: "fluctus.cc"
+          REMOTE_USER: "root"
+          TARGET: "/root/Webs/Fluctus-back/"
