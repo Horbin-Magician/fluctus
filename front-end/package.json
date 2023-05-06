@@ -4,7 +4,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "mv dist/index.html ../back-end/www/bp_web/templates/ &&  mv dist ../back-end/www/static/",
     "preview": "vite preview --port 4173"
   },
   "dependencies": {
