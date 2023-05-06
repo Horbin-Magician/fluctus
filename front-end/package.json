@@ -5,7 +5,7 @@
     "dev": "vite",
     "prebuild": "rm ../back-end/www/bp_web/templates/index.html",
     "build": "vite build",
-    "postbuild": "mv dist/index.html ../back-end/www/bp_web/templates/ &&  move dist ../back-end/www/static/",
+    "postbuild": "mv dist/index.html ../back-end/www/bp_web/templates/ &&  mv dist ../back-end/www/static/",
     "preview": "vite preview --port 4173"
   },
   "dependencies": {
