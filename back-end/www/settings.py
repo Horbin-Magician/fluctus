@@ -1,7 +1,9 @@
+import os
+
 # app配置
 class BaseConfig(object):
   DEBUG = True
-  SECRET_KEY = '4sa56df4hf5g4hv132sd4f6'
+  SECRET_KEY = os.urandom(24)
 
 class ProductionConfig(BaseConfig):
   DEBUG = False
