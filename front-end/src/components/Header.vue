@@ -87,7 +87,7 @@
     </header>
     <n-modal v-model:show="showLoginModal" transform-origin="center">
         <div class="login">
-            <form @keyup.enter="onLogin" autocomplete="off">
+            <form @keyup.enter="onLogin">
                 <input type="text" name='name' id='name' v-model='user_name' placeholder="账号"/>
                 <input type="password" name='pwd' id='pwd' v-model='user_key' placeholder="密码">
                 <a @click="onLogin"> 登录 </a>
@@ -96,6 +96,9 @@
     </n-modal>
     <n-modal v-model:show="showLogoutModal" preset="dialog" :closable="false" type="warning"
          title="注销" content="是否注销当前登陆？" positive-text="确认" negative-text="取消" @positive-click="logout"/>
+    <div class="sidebar">
+        这是侧边栏
+    </div>
 </template>
 
 <style scoped>
@@ -230,10 +233,25 @@ header{
     box-shadow: 0 0 5px var(--color-light);
 }
 
-/* 去掉input框中的小眼睛 */
+.sidebar{
+    background-color: red;
+    height: 100vh;
+    width: 200px;
+    position: fixed;
+    left: -200px;
+    top: 0;
+    transition: left 0.5s ease;
+}
+
+/* 去掉input框的异常样式（小眼睛、自动填充） */
 #n1::-webkit-outer-spin-button,
 #n1::-webkit-inner-spin-button{
     -webkit-appearance: none !important;
     margin: 0;
+}
+input[type=password]::-ms-reveal { display: none; }
+input:-internal-autofill-previewed,
+input:-internal-autofill-selected {
+    transition: background-color 5000s ease-out 0.5s;
 }
 </style>
