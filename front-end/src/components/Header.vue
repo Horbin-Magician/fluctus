@@ -1,6 +1,6 @@
 <!-- 页头 Header -->
 <script setup>
-    import { NModal, useMessage } from 'naive-ui'
+    import { NModal, useMessage, NDrawer, NDrawerContent } from 'naive-ui'
     import { ref } from 'vue'
     import { RouterLink, useRouter, useRoute } from 'vue-router'
 
@@ -71,7 +71,7 @@
                     <use xlink:href="#icon-logo"></use>
                 </svg>
             </div>
-            <router-link to="/calendar" :class="{active: now_page == 'calendar'}" class="link" v-if="checkLogin()"> 日历 </router-link>
+            <!-- <router-link to="/calendar" :class="{active: now_page == 'calendar'}" class="link" v-if="checkLogin()"> 日历 </router-link> -->
         </div>
         <div class="nav">
             <router-link to="/" :class="{active: now_page == ''}" class="link"> 首页 </router-link>
@@ -87,7 +87,7 @@
     </header>
     <n-modal v-model:show="showLoginModal" transform-origin="center">
         <div class="login">
-            <form @keyup.enter="onLogin">
+            <form @keyup.enter="onLogin" autocomplete="off">
                 <input type="text" name='name' id='name' v-model='user_name' placeholder="账号"/>
                 <input type="password" name='pwd' id='pwd' v-model='user_key' placeholder="密码">
                 <a @click="onLogin"> 登录 </a>
@@ -122,16 +122,19 @@ header{
     margin-right: 20px;
     transform-origin: center center;
 }
+
 .logo svg{
     width: 50px;
     height: 50px;
     color: var(--color-light);
 }
+
 .logo:hover{
     animation: shake 0.2s linear;
     cursor: pointer;
     filter: drop-shadow( 0px 0px 1px var(--color-light) );
 }
+
 .nav{
     display: flex;
     justify-content: center;
@@ -180,13 +183,19 @@ header{
   fill: currentColor;
 }
 
+.logo-login svg{
+    height: 60px;
+    width: 60px;
+    color: var(--color-light);
+}
+
 .login{
     display: flex;
     flex-direction: column;
     align-items: center;
     width: 300px;
-    padding: 20px 30px;
-    border-radius: 10px;
+    padding: 30px 30px 20px 30px;
+    border-radius: 20px;
     color: var(--color-text);
     background-color: var(--color-background);
 }
@@ -197,7 +206,7 @@ header{
     width: 100%;
     padding: 5px 0;
     margin-bottom: 20px;
-    font-size: 16px;
+    text-align: center;
     transition: all 0.3s;
     color: var(--color-text);
     background-color: transparent;
@@ -208,19 +217,23 @@ header{
 .login a{
     display: block;
     text-align: center;
-    border: 1px solid var(--color-text);
+    color: var(--color-background);
     width: 100%;
-    padding: 5px;
-    text-decoration: none;
+    height: 40px;
     transition: all 0.3s;
-    border-radius: 5px;
-    background-color: transparent;
+    border-radius: 20px;
+    background-color: var(--color-light);
+    line-height: 40px;
 }
 .login a:hover {
     cursor: pointer;
-    border: 1px solid var(--color-light);
-    color: var(--color-light);
-    cursor: pointer;
     box-shadow: 0 0 5px var(--color-light);
+}
+
+/* 去掉input框中的小眼睛 */
+#n1::-webkit-outer-spin-button,
+#n1::-webkit-inner-spin-button{
+    -webkit-appearance: none !important;
+    margin: 0;
 }
 </style>
