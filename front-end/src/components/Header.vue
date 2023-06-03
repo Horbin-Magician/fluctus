@@ -19,21 +19,19 @@
     const theme = ref(docBody.getAttribute('theme'))
     const user_name = ref('')
     const user_key = ref('')
+    const nav_track_left = ref('10px')
 
-    //初始化User信息
+    // 初始化User信息
     initUser().then(data =>{
         if(data && data.status == 0) message.success(data.message)
     })
+    // 初始化theme信息
     const theme_storaged = storageUtils.getTheme()
     if(theme_storaged != null && theme_storaged != theme){
         docBody.setAttribute('theme', theme_storaged)
         theme.value = theme_storaged
     }
-
-    router.afterEach((to, from) => {
-        now_page.value = to.path.slice(1).split('/')[0]
-    })
-
+    // 定义函数
     const switchDocumentTheme = () => {
         theme.value = (theme.value == "light") ? "dark" : "light"
         docBody.setAttribute('theme', theme.value)
@@ -61,22 +59,43 @@
         userlogout()
         message.success("注销成功！")
     }
+
+    function update_track_left(){
+        console.log(now_page.value)
+        switch(now_page.value){
+            case '': nav_track_left.value = '10px'; break;
+            case 'calendar': nav_track_left.value = String(10 + 70*1) + 'px'; break;
+            case 'about':
+                if(checkLogin()) nav_track_left.value = String(10 + 70*2) + 'px';
+                else nav_track_left.value = String(10 + 70*1) + 'px';
+                break;
+        }
+    }
+
+    // 初始化nav_track_left
+    update_track_left()
+
+    // 监听路由变化
+    router.afterEach((to, from) => {
+        now_page.value = to.path.slice(1).split('/')[0]
+        update_track_left()
+    })
 </script>
 
 <template>
     <header>
-        <div class="nav">
-            <div class="logo">
-                <svg class="icon" aria-hidden="true" @click="onLogoClicked">
-                    <use xlink:href="#icon-logo"></use>
-                </svg>
-            </div>
-            <!-- <router-link to="/calendar" :class="{active: now_page == 'calendar'}" class="link" v-if="checkLogin()"> 日历 </router-link> -->
+        <div class="logo">
+            <svg class="icon" aria-hidden="true" @click="onLogoClicked">
+                <use xlink:href="#icon-logo"></use>
+            </svg>
         </div>
-        <div class="nav">
-            <router-link to="/" :class="{active: now_page == ''}" class="link"> 首页 </router-link>
-            <!-- <router-link to="/repository" :class="{active: now_page == 'repository'}" class="link"> 仓库 </router-link> -->
-            <router-link to="/about" :class="{active: now_page == 'about'}" class="link"> 关于 </router-link>
+        <div class="left-bar">
+            <div class="nav">
+                <router-link to="/" class="link"> 首页 </router-link>
+                <router-link to="/calendar" class="link" v-if="checkLogin()"> 日历 </router-link>
+                <router-link to="/about" class="link"> 关于 </router-link>
+                <div class="nav-track"> </div>
+            </div>
             <div class="theme" @click="switchDocumentTheme">
                 <svg class="icon" aria-hidden="true">
                     <use xlink:href="#icon-sun" v-if="theme == 'light'"></use>
@@ -96,9 +115,6 @@
     </n-modal>
     <n-modal v-model:show="showLogoutModal" preset="dialog" :closable="false" type="warning"
          title="注销" content="是否注销当前登陆？" positive-text="确认" negative-text="取消" @positive-click="logout"/>
-    <div class="sidebar">
-        这是侧边栏
-    </div>
 </template>
 
 <style scoped>
@@ -138,6 +154,11 @@ header{
     filter: drop-shadow( 0px 0px 1px var(--color-light) );
 }
 
+.left-bar{
+    display: flex;
+    align-items: center;
+}
+
 .nav{
     display: flex;
     justify-content: center;
@@ -147,31 +168,37 @@ header{
 .nav .link{
     color: var(--color-text);
     display: block;
-    margin-right: 20px;
+    text-align: center;
     line-height: 50px;
-    padding: 0px 10px;
+    width: 70px;
     transition: all 0.2s ease;
     border-bottom: 2px solid transparent;
 }
 .nav .link:hover{
     color: var(--color-light);
     text-shadow: 0px 0px 1px var(--color-light);
-    border-bottom: 2px solid var(--color-light);
 }
 
-.active{
-    color: var(--color-light);
-    border-bottom: 2px solid var(--color-light)!important;
+.nav-track{
+    position: absolute;
+    background-color: var(--color-light);
+    height: 4px;
+    border-radius: 2px;
+    width: 50px;
+    left: v-bind('nav_track_left');
+    bottom: 0px;
+    transition: .3s;
 }
 
 .theme{
     width: 30px;
     height: 30px;
-    margin-top: 10px;
     margin-right: 20px;
+    margin-left: 10px;
     transition: transform 0.2s ease;
     transform-origin: center center;
 }
+
 .theme:hover{
     cursor: pointer;
     transform: rotate(180deg);
@@ -231,16 +258,6 @@ header{
 .login a:hover {
     cursor: pointer;
     box-shadow: 0 0 5px var(--color-light);
-}
-
-.sidebar{
-    background-color: red;
-    height: 100vh;
-    width: 200px;
-    position: fixed;
-    left: -200px;
-    top: 0;
-    transition: left 0.5s ease;
 }
 
 /* 去掉input框的异常样式（小眼睛、自动填充） */

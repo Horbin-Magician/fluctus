@@ -48,9 +48,7 @@
         let current;
         // 载入初始周属于上月日子
         for (let i = 1; i < weekStart; i++) {
-            console.log('weekstart:' + weekStart)
             current = new Date(milsStart - (weekStart - i) * dayMils)
-            console.log(current)
             monthDatas.push({
             type: -1,
             date: current,
@@ -119,7 +117,6 @@
 
         if(d.type != 0) return_data['day_cell_invalid'] = true
         if(d.fullYear == now_year && d.month == now_month && d.day == now_day) return_data['day_cell_today'] = true
-        console.log(return_data)
         return return_data;
     }
 
