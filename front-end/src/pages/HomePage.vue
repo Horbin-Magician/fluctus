@@ -22,8 +22,12 @@
     const searchSources = {'baidu':'https://www.baidu.com/s?wd=', 'bing':'https://cn.bing.com/search?q=', 'google':'https://www.google.com/search?q='}
 
     let search = () => {
-        if(selectedSugIndex.value == null) window.location.href=searchSources[nowSearchSource.value] + searchValue.value;
-        else window.location.href=searchSources[nowSearchSource.value] + sugList.value[selectedSugIndex.value]['q'];
+        if(selectedSugIndex.value == null) openURL(searchSources[nowSearchSource.value] + searchValue.value);
+        else openURL(searchSources[nowSearchSource.value] + sugList.value[selectedSugIndex.value]['q']);
+    }
+
+    let openURL = (url) => {
+        window.location.href=url;
     }
 
     let selectPre = (event) => {
@@ -122,10 +126,10 @@
         </div>
         <div class="overlay"></div>
         <div class="fav">
-            <div class="fav-item" href="https://www.bilibili.com/">
+            <div class="fav-item" @click="openURL('https://www.bilibili.com/')">
                 <img src="https://www.bilibili.com/favicon.ico?v=1"/>
             </div>
-            <div class="fav-item" href="https://github.com/">
+            <div class="fav-item" @click="openURL('https://github.com/')">
                 <img src="https://github.githubassets.com/favicons/favicon.png"/>
             </div>
         </div>
