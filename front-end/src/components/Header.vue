@@ -1,6 +1,6 @@
 <!-- 页头 Header -->
 <script setup>
-    import { NModal, useMessage, NDrawer, NDrawerContent } from 'naive-ui'
+    import { NModal, useMessage } from 'naive-ui'
     import { ref } from 'vue'
     import { RouterLink, useRouter, useRoute } from 'vue-router'
 
@@ -57,6 +57,7 @@
 
     function logout(){
         userlogout()
+        update_track_left()
         message.success("注销成功！")
     }
 

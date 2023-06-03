@@ -70,11 +70,6 @@
         changingSearchSource.value = false;
     }
 
-    // let watchMouseMove = (e)=>{
-    //     let offsetX_raw = (window.innerWidth / 2 - e.screenX) / 20
-    //     logoOffsetX.value = offsetX_raw + 'px';
-    // }
-
     watch(searchValue, async(newValue, oldValue) => {
         if(newValue != oldValue && newValue != ''){
             reqSugList(newValue).then(data => {
@@ -93,7 +88,7 @@
 
 <template>
     <div class="container" @mousemove="watchMouseMove">
-        <svg id="homelogo" aria-hidden="true">
+        <svg id="homelogo">
             <use xlink:href="#icon-homelogo"></use>
         </svg>
         <div class="search-div" tabIndex="0" @keyup.up.prevent="selectPre" @keyup.down.prevent="selectNext">
@@ -105,7 +100,6 @@
                     <svg class="search-icon" @click="()=>changeSearchSource()">
                         <use :xlink:href="'#icon-' + nowSearchSource"></use>
                     </svg>
-
                     <svg v-for="(searchSource, index) in Object.keys(searchSources)" :key="searchSource"
                     :class="{'search-icon':true, 'select-source': true}"
                     @click="()=>changeSearchSource(searchSource)"
@@ -127,6 +121,14 @@
             </div>
         </div>
         <div class="overlay"></div>
+        <div class="fav">
+            <div class="fav-item" href="https://www.bilibili.com/">
+                <img src="https://www.bilibili.com/favicon.ico?v=1"/>
+            </div>
+            <div class="fav-item" href="https://github.com/">
+                <img src="https://github.githubassets.com/favicons/favicon.png"/>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -134,7 +136,7 @@
     .container{
         height: calc(100vh - 80px);
         display: grid;
-        grid-template-rows: 24vh 100px;
+        grid-template-rows: 24vh 100px 60px;
         place-items: center;
     }
 
@@ -251,5 +253,31 @@
         height: 100%;
         transition: 0.3s ease-out;
         z-index: -1;
+    }
+    .fav{
+        height: 100%;
+        grid-row-start: 4;
+        display: flex;
+    }
+
+    .fav-item{
+        height: 50px;
+        width: 50px;
+        border-radius: 50%;
+        padding: 8px;
+        margin: 4px;
+        border: 2px solid var(--color-light);
+        font-size: 13px;
+        transition: all 0.2s ease-out;
+    }
+
+    .fav-item:hover{
+        box-shadow: 0 0 5px var(--color-light);
+        cursor: pointer;
+    }
+
+    .fav-item img{
+        height: 100%;
+        width: 100%;
     }
 </style>
