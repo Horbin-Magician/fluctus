@@ -124,7 +124,6 @@
                 </div>
             </div>
         </div>
-        <div class="overlay"></div>
         <div class="fav">
             <div class="fav-item" @click="openURL('https://www.bilibili.com/')">
                 <img src="https://www.bilibili.com/favicon.ico?v=1"/>
@@ -133,6 +132,7 @@
                 <img src="https://github.githubassets.com/favicons/favicon.png"/>
             </div>
         </div>
+        <div class="overlay"></div>
     </div>
 </template>
 
@@ -151,6 +151,7 @@
         height: 100px;
         width: 200px;
         fill: var(--color-light);
+        animation: floatImage 4s ease-in-out infinite;
     }
     .search-div{
         height: v-bind('searchDivHeight');
@@ -163,7 +164,7 @@
         transition: all 0.2s ease-out;
         overflow: hidden;
         background-color: var(--color-background);
-        z-index: 2;
+        z-index: 200;
     }
 
     .search-div:hover{
@@ -174,8 +175,8 @@
         box-shadow: 0 0 5px var(--color-light);
     }
 
-    .search-div:focus-within + .overlay{
-        z-index: 1;
+    .search-div:focus-within~.overlay{
+        z-index: 100;
         background: rgba(0, 0, 0, 0.3);
     }
 
@@ -283,5 +284,11 @@
     .fav-item img{
         height: 100%;
         width: 100%;
+    }
+
+    @keyframes floatImage {
+        0% {transform: translateY(0);}
+        50% {transform: translateY(-4px);}
+        100% {transform: translateY(0);}
     }
 </style>

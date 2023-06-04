@@ -1,7 +1,13 @@
 <!-- 日历页 Calendar -->
 <script setup>
     import { ref } from 'vue';
+    import { RouterLink, useRouter, useRoute } from 'vue-router'
+
     import calendar from '@/utils/calendarUtils'
+    import { checkLogin } from '@/utils/userUtils';
+
+    const router = useRouter()
+    if(!checkLogin()) router.push('/')
 
     function preYear () {
         let n = show_date.value

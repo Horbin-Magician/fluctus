@@ -72,7 +72,6 @@
                 break;
         }
     }
-
     // 初始化nav_track_left
     update_track_left()
 
