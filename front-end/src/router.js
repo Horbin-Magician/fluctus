@@ -4,8 +4,8 @@ const routes = [
   { path: '/', component: () => import('./pages/HomePage.vue')},
   { path: '/about', component: () => import('./pages/AboutPage.vue') },
   { path: '/repository', component: () => import('./pages/RepositoryPage.vue') },
-
   { path: '/calendar', component: () => import('./pages/CalendarPage.vue') },
+  { path: '/secret', component: () => import('./pages/SecretPage.vue') },
 ]
 
 const router = createRouter({

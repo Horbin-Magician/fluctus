@@ -46,7 +46,6 @@
             }else{
                 message.error(data.message)
             }
-            
         })
     }
     function onLogoClicked(){
