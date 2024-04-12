@@ -61,7 +61,6 @@
     }
 
     function update_track_left(){
-        console.log(now_page.value)
         switch(now_page.value){
             case '': nav_track_left.value = '10px'; break;
             case 'calendar': nav_track_left.value = String(10 + 70*1) + 'px'; break;

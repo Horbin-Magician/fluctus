@@ -4,7 +4,6 @@
  */
 import axios from 'axios'
 
-
 export default function ajax(url, data = {}, type = 'GET') {
   if(process.env.NODE_ENV == 'production') url = 'https://api.fluctus.cc' + url
   return new Promise((resolve) => {
@@ -20,7 +19,7 @@ export default function ajax(url, data = {}, type = 'GET') {
     promise.then(response => {
       resolve(response.data)
     }).catch(error => {
-      // message.error('请求出错：' + error.message)
+      // TODO 统一处理error
     })
   })
 }

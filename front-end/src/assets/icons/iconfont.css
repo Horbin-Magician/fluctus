@@ -1,6 +1,6 @@
 @font-face {
   font-family: "iconfont"; /* Project id 2555634 */
-  src: url('iconfont.svg?t=1683384973073#iconfont') format('svg');
+  src: url('iconfont.svg?t=1712762742721#iconfont') format('svg');
 }
 
 .iconfont {
@@ -9,6 +9,14 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-like:before {
+  content: "\ec8c";
+}
+
+.icon-msgboard:before {
+  content: "\e64e";
 }
 
 .icon-search:before {

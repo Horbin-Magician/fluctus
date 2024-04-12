@@ -44,6 +44,9 @@ export const userlogin = (username, password) => {
         else data['message'] = "登录失败，账号或密码错误！";
       }
       resolve(data)
+    }).catch(error => {
+      console.log(123)
+      console.log(error)
     })
   })
 }
@@ -64,10 +67,7 @@ export const userlogout = () => {
 export const initUser = () => {
   return new Promise((resolve) => {
     const user = storageUtils.getUser()
-    if (user.username){
-      memoryUtils.userdata = user
-      return resolve(userlogin(user.username, user.password))
-    }
+    if (user.username) return resolve(userlogin(user.username, user.password))
     return resolve(null)
   })
 }
@@ -77,8 +77,5 @@ export const initUser = () => {
  * @returns true or false
  */
 export const checkLogin = () => {
-  if (memoryUtils.userdata && memoryUtils.userdata.username) {
-    return true
-  }
-  return false
+  return memoryUtils.userdata && memoryUtils.userdata.username
 }

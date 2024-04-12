@@ -6,6 +6,20 @@
   "description": "个人应用站",
   "glyphs": [
     {
+      "icon_id": "6380878",
+      "name": "点赞_块",
+      "font_class": "like",
+      "unicode": "ec8c",
+      "unicode_decimal": 60556
+    },
+    {
+      "icon_id": "8094224",
+      "name": "留言:消息",
+      "font_class": "msgboard",
+      "unicode": "e64e",
+      "unicode_decimal": 58958
+    },
+    {
       "icon_id": "15716261",
       "name": "search",
       "font_class": "search",

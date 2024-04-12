@@ -6,9 +6,9 @@ class BaseDbController():
   def __init__(self):
     # 连接数据库，提供两种路径
     try:
-      self.conn = sqlite3.connect('datas/base.db')
+      self.conn = sqlite3.connect('datas/base.sqlite')
     except:
-      self.conn = sqlite3.connect('back-end/datas/base.db')
+      self.conn = sqlite3.connect('back-end/datas/base.sqlite')
     self.c = self.conn.cursor()
   # 关闭数据库
   def __del__(self):
@@ -99,3 +99,4 @@ class BaseDbController():
 # test code
 if __name__ == '__main__':
   bDb = BaseDbController()
+  # bDb.updateUser('xxy', 'b206e95a4384298962649e58dc7b39d4', 'root')
