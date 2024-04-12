@@ -17,6 +17,7 @@
   import { useMessage, NButton, NTooltip, NModal } from 'naive-ui'
 
   import { checkLogin } from '@/utils/userUtils';
+  import { getState, updateState, getSecret, getMessage, updateMessage } from '@/api/secretAPI'
 
   const message = useMessage()
   const router = useRouter()
@@ -25,32 +26,32 @@
       message.error("请先登录！")
   }
 
-  const secrets = [
-    '今天是4月10日',
-    '今天是4月11日',
-    '今天是4月12日',
-    '分手时想到什么。\n这最后的39天，让我和我的小秘密一同陪你走过~',
-  ]
-
-  const start_words = 
-    '欢迎来到秘密树洞！\n' +
-    '从今天到小小语毕业，这里每天都会浮现一条小小槟的“小秘密”。\n' +
-    '最后，这将变成你我共同的秘密。\n' +
-    '准备好接收第一条小秘密了吗？';
-  
-  const error_words = '糟糕,树洞门还没开，快找小小槟开门！';
-  
   // states
-  const if_ready = ref(false);
-  const like_state = ref(0);
+  const secret_state = ref(-1); // -1: first see, 0: seen, 1: like, 2: dislike
+  let secret = null;
+  const msg_board_text = ref('');
   const showMsgBoardModal = ref(false);
   
   const typedLines = ref([]);
   const typedIndex = ref(-1);
   const if_finish_typed = ref(false);
-  const msg_board_text = ref('');
+
+  { // update states
+    getState().then(data => {
+      if(data && data.status === '0') {secret_state.value = data.state}
+    })
+
+    getSecret().then(data => {
+      if(data && data.status === '0') {secret = data.secret}
+    })
+
+    getMessage().then(data => {
+      if(data && data.status === '0') {msg_board_text.value = data.message}
+    })
+  }
 
   async function typeLines(words) {
+    if_finish_typed.value = false;
     const lines = words.split('\n');
     typedLines.value = [];
     for (const [index, line] of lines.entries()) {
@@ -80,28 +81,51 @@
   }
 
   function onReadyClicked(){
-    if_ready.value = true; // TODO 保存记录到服务器，且刚开始时从服务器获取记录
-    if_finish_typed.value = false;
-    typeLines(secrets.pop()); secrets.pop()
+    if(secret) {
+      secret_state.value = 0;
+      updateState(secret_state.value).then(data => {})
+      typeLines(secret);
+    } else message.error('糟糕,树洞门还没开，快找小小槟开门！');
   }
 
-  // TODO
   function onLikeClicked(){
-    like_state.value = 1
+    secret_state.value = 1
+    updateState(secret_state.value).then(data => {
+      if(data && data.status === '0') {message.success("点赞成功！")}
+    })
   }
 
-  // TODO
   function onDislikeClicked(){
-    like_state.value = 2
+    secret_state.value = 2
+    updateState(secret_state.value).then(data => {
+      if(data && data.status === '0') {message.success("反馈成功")}
+    })
   }
 
-  // TODO
   function onMsgBoardClicked(){
     showMsgBoardModal.value = true
+    updateMessage(msg_board_text.value).then(data => {
+      if(data && data.status === '0') {message.success("留言成功！")}
+    })
   }
 
   onMounted(() => {
-    typeLines(start_words); // TODO 判断是否为首次
+    const start_words_first = 
+      '欢迎来到秘密树洞！\n' +
+      '从今天到小小语毕业，这里每天都会浮现一条小小槟的“小秘密”。\n' +
+      '最后，这将变成你我共同的秘密。\n' +
+      '准备好接收第一条小秘密了吗？';
+    const start_words = '准备好接收今天的小秘密了吗？';
+    if(secret_state.value === -1) {
+      const today = new Date();
+      const year = today.getFullYear(); // 获取年份
+      const month = today.getMonth() + 1; // 获取月份，月份是从0开始的，所以需要加1
+      const date = today.getDate(); // 获取日期
+      // 格式化日期，确保月份和日期为两位数
+      const formattedDate = year + String(month).padStart(2, '0') + String(date).padStart(2, '0');
+      if(formattedDate == '20240415') typeLines(start_words_first);
+      else typeLines(start_words);
+    } else typeLines(secret);
   });
 </script>
 
@@ -109,12 +133,12 @@
     <div class="container">
       <div class="typed-container">
         <p class="content" v-for="(line, index) in typedLines" :key="index" :class="{ 'blink': index==typedIndex }">{{ line }}</p>
-        <n-button size="large" type="info" round v-show="if_finish_typed & !if_ready" @click="onReadyClicked"> 我准备好了! </n-button>
+        <n-button size="large" type="info" round v-show="if_finish_typed & (secret_state==-1)" @click="onReadyClicked"> 准备好了! </n-button>
         
-        <div class="operate_bar" v-show="if_finish_typed & if_ready">
+        <div class="operate_bar" v-show="if_finish_typed & (secret_state!=-1) & secret">
           <n-tooltip placement="bottom-end" trigger="hover">
             <template #trigger>
-              <svg :class="['icon-btn', {'light-icon': like_state==1}]" @click="onLikeClicked">
+              <svg :class="['icon-btn', {'light-icon': secret_state==1}]" @click="onLikeClicked">
                 <use :xlink:href="'#icon-like'"></use>
               </svg>
             </template>
@@ -123,7 +147,7 @@
 
           <n-tooltip placement="bottom" trigger="hover">
             <template #trigger>
-              <svg :class="['icon-btn', 'icon-r180', {'light-icon': like_state==2}]" @click="onDislikeClicked">
+              <svg :class="['icon-btn', 'icon-r180', {'light-icon': secret_state==2}]" @click="onDislikeClicked">
                 <use :xlink:href="'#icon-like'"></use>
               </svg>
             </template>

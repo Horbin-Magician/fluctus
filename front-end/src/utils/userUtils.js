@@ -44,9 +44,6 @@ export const userlogin = (username, password) => {
         else data['message'] = "登录失败，账号或密码错误！";
       }
       resolve(data)
-    }).catch(error => {
-      console.log(123)
-      console.log(error)
     })
   })
 }
