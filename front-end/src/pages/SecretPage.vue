@@ -1,14 +1,4 @@
 <!-- 关于页 About -->
-<!--
-  TODO List：
-    服务端：
-      1、储存并返回小秘密
-      2、记录用户的是否首次、点赞、踩、留言
-    客户端
-      1、点赞、踩点击功能
-      2、留言面板
--->
-
 <script setup>
   import '@/assets/icons/iconfont'
 
@@ -17,7 +7,7 @@
   import { useMessage, NButton, NTooltip, NModal } from 'naive-ui'
 
   import { checkLogin } from '@/utils/userUtils';
-  import { getState, updateState, getSecret, getMessage, updateMessage } from '@/api/secretAPI'
+  import { getSecret, updateState, updateMessage } from '@/api/secretAPI'
 
   const message = useMessage()
   const router = useRouter()
@@ -36,23 +26,9 @@
   const typedIndex = ref(-1);
   const if_finish_typed = ref(false);
 
-  { // update states
-    getState().then(data => {
-      if(data && data.status === '0') {secret_state.value = data.state}
-    })
-
-    getSecret().then(data => {
-      if(data && data.status === '0') {secret = data.secret}
-    })
-
-    getMessage().then(data => {
-      if(data && data.status === '0') {msg_board_text.value = data.message}
-    })
-  }
-
   async function typeLines(words) {
     if_finish_typed.value = false;
-    const lines = words.split('\n');
+    const lines = words.split('@');
     typedLines.value = [];
     for (const [index, line] of lines.entries()) {
       typedIndex.value = index;
@@ -76,7 +52,7 @@
           clearInterval(intervalId);
           resolve();
         }
-      }, 10); // 每100毫秒打印一个字符 TODO 改回来
+      }, 100); // 每100毫秒打印一个字符
     });
   }
 
@@ -84,6 +60,7 @@
     if(secret) {
       secret_state.value = 0;
       updateState(secret_state.value).then(data => {})
+      console.log(secret_state.value)
       typeLines(secret);
     } else message.error('糟糕,树洞门还没开，快找小小槟开门！');
   }
@@ -96,36 +73,56 @@
   }
 
   function onDislikeClicked(){
-    secret_state.value = 2
+    secret_state.value = 2;
     updateState(secret_state.value).then(data => {
-      if(data && data.status === '0') {message.success("反馈成功")}
+      if(data && data.status === '0') {message.success("反馈成功");}
     })
   }
 
   function onMsgBoardClicked(){
-    showMsgBoardModal.value = true
+    showMsgBoardModal.value = true;
+  }
+
+  function onUpdateMessage(){
     updateMessage(msg_board_text.value).then(data => {
-      if(data && data.status === '0') {message.success("留言成功！")}
-    })
+      if(data && data.status === '0') {
+        message.success("留言成功！");
+        showMsgBoardModal.value = false;
+      }
+    });
   }
 
   onMounted(() => {
     const start_words_first = 
-      '欢迎来到秘密树洞！\n' +
-      '从今天到小小语毕业，这里每天都会浮现一条小小槟的“小秘密”。\n' +
-      '最后，这将变成你我共同的秘密。\n' +
+      '欢迎来到秘密树洞！@' +
+      '从今天到小小语毕业，这里每天都会浮现一条小小槟的“小秘密”。@' +
+      '最后，这将变成你我共同的秘密。@' +
       '准备好接收第一条小秘密了吗？';
     const start_words = '准备好接收今天的小秘密了吗？';
-    if(secret_state.value === -1) {
-      const today = new Date();
-      const year = today.getFullYear(); // 获取年份
-      const month = today.getMonth() + 1; // 获取月份，月份是从0开始的，所以需要加1
-      const date = today.getDate(); // 获取日期
-      // 格式化日期，确保月份和日期为两位数
-      const formattedDate = year + String(month).padStart(2, '0') + String(date).padStart(2, '0');
-      if(formattedDate == '20240415') typeLines(start_words_first);
-      else typeLines(start_words);
-    } else typeLines(secret);
+
+    // update states
+    getSecret().then(data => {
+      if(data && data.status === '0') {
+        data = data.data
+        secret_state.value = parseInt(data.state)
+        msg_board_text.value = data.message
+        secret = data.secret
+        
+        if(secret_state.value === -1) {
+          // 得到格式化的当前日期
+          const today = new Date();
+          const year = today.getFullYear(); // 获取年份
+          const month = today.getMonth() + 1; // 获取月份，月份是从0开始的，所以需要加1
+          const date = today.getDate(); // 获取日期
+          const formattedDate = year + String(month).padStart(2, '0') + String(date).padStart(2, '0');
+          // 根据日期判断提示词
+          if(formattedDate == '20240415') typeLines(start_words_first);
+          else typeLines(start_words);
+        } else {
+          typeLines(secret);
+        }
+      }
+    })
   });
 </script>
 
@@ -135,7 +132,7 @@
         <p class="content" v-for="(line, index) in typedLines" :key="index" :class="{ 'blink': index==typedIndex }">{{ line }}</p>
         <n-button size="large" type="info" round v-show="if_finish_typed & (secret_state==-1)" @click="onReadyClicked"> 准备好了! </n-button>
         
-        <div class="operate_bar" v-show="if_finish_typed & (secret_state!=-1) & secret">
+        <div class="operate_bar" v-show="if_finish_typed & (secret_state!=-1) & secret!=null">
           <n-tooltip placement="bottom-end" trigger="hover">
             <template #trigger>
               <svg :class="['icon-btn', {'light-icon': secret_state==1}]" @click="onLikeClicked">
@@ -170,7 +167,7 @@
             <form @keyup.enter="onLogin">
                 <textarea type="text" name='name' id='name' maxlength="100" v-model='msg_board_text' placeholder="想说些什么呢~"/>
                 <span>{{msg_board_text.length}}/100</span>
-                <a @click="onLogin"> 确定 </a>
+                <a @click="onUpdateMessage"> 确定 </a>
             </form>
         </div>
     </n-modal>
@@ -217,9 +214,9 @@
     }
 
     .icon-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 14px;
+      width: 24px;
+      height: 24px;
+      border-radius: 12px;
       cursor: pointer;
     }
 
@@ -243,7 +240,7 @@
       flex-direction: column;
       align-items: center;
       width: 400px;
-      padding: 30px 30px 20px 30px;
+      padding: 20px;
       border-radius: 20px;
       color: var(--color-text);
       background-color: var(--color-background);
@@ -253,7 +250,7 @@
       resize: none;
       outline: none;
       border: 1px solid var(--color-text);
-      width: 300px;
+      width: 350px;
       height: 150px;
       transition: all 0.3s;
       font-size: 16px;

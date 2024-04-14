@@ -3,22 +3,18 @@
  */
 import ajax from './ajax'
 
-export const getState = () => {
-    return ajax('/api/secret/state', {'type':'get'}, 'POST')
+export const getSecret = () => {
+    return ajax('/api/secret', {'type':'get'}, 'POST')
+}
+
+export const updateSecret = (state=undefined, message=undefined) => {
+    return ajax('/api/secret', {'type':'update', state, message}, 'POST')
 }
 
 export const updateState = (state) => {
-    return ajax('/api/secret/state', {'type':'update', state}, 'POST')
-}
-
-export const getSecret = () => {
-    return ajax('/api/secret/secretItem', {'type':'get'}, 'POST')
-}
-
-export const getMessage = () => {
-    return ajax('/api/secret/message', {'type':'get'}, 'POST')
+    return updateSecret(state)
 }
 
 export const updateMessage = (message) => {
-    return ajax('/api/secret/message', {'type':'set', message}, 'POST')
+    return updateSecret(undefined, message)
 }
