@@ -103,6 +103,14 @@
         '最后，这将变成你我共同的秘密。@' +
         '准备好接收第一条小秘密了吗？';
       const start_words = '准备好接收今天的小秘密了吗？';
+      const greetings = [
+        '这么急着看呀？注意早点休息哦~',                        // 12:00-6:00
+        '早安！新的一天，满载希望和活力，愿你拥有美妙的一天。',   // 6:00-11:00
+        '中午好！记得给自己一个美味的午餐时间哦。',              // 11:00-13:00
+        '下午好~希望你的午后充满阳光和效率。',                   // 13:00-17:00
+        '晚上好！放松一下，享受属于你的美好夜晚。',              // 17:00-22:00
+        '等你好久啦，看完早点休息哦~',                          // 22:00-24:00
+      ];
 
       // update states
       getSecret().then(data => {
@@ -118,10 +126,19 @@
             const year = today.getFullYear(); // 获取年份
             const month = today.getMonth() + 1; // 获取月份，月份是从0开始的，所以需要加1
             const date = today.getDate(); // 获取日期
-            const formattedDate = year + String(month).padStart(2, '0') + String(date).padStart(2, '0');
+            const hour = today.getHours(); // 获取小时
+            let formattedDate = year + String(month).padStart(2, '0') + String(date).padStart(2, '0');
+            formattedDate = '20240416'
             // 根据日期判断提示词
-            if(formattedDate == '20240415') typeLines(start_words_first);
-            else typeLines(start_words);
+            let type_words = start_words;
+            if(formattedDate == '20240415') type_words = start_words_first;
+            else if(hour >= 0 && hour < 6) type_words = greetings[0] + '@' + start_words;
+            else if(hour >= 6 && hour < 11) type_words = greetings[1] + '@' + start_words;
+            else if(hour >= 11 && hour < 13) type_words = greetings[2] + '@' + start_words;
+            else if(hour >= 13 && hour < 17) type_words = greetings[3] + '@' + start_words;
+            else if(hour >= 17 && hour < 22) type_words = greetings[4] + '@' + start_words;
+            else if(hour >= 22 && hour < 24) type_words = greetings[5] + '@' + start_words;
+            typeLines(type_words);
           } else {
             typeLines(secret);
           }
