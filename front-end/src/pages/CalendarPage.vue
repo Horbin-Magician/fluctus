@@ -1,6 +1,6 @@
 <!-- 日历页 Calendar -->
 <script setup>
-    import { ref } from 'vue';
+    import { ref, onMounted } from 'vue';
     import { RouterLink, useRouter, useRoute } from 'vue-router'
     import { useMessage } from 'naive-ui'
 
@@ -191,10 +191,12 @@
     onMounted(() => {
         const message = useMessage()
         const router = useRouter()
-        if(!checkLogin()) {
-            router.push('/')
-            message.error("请先登录！")
-        }
+        checkLogin().then((result) => {
+            if (!result) {
+                router.push('/')
+                message.error("请先登录！")
+            }
+        });
     });
 </script>
 

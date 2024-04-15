@@ -76,5 +76,14 @@ export const initUser = () => {
  * @returns true or false
  */
 export const checkLogin = () => {
-  return memoryUtils.userdata && memoryUtils.userdata.username
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      if (!isLogining) {
+        resolve(memoryUtils.userdata && memoryUtils.userdata.username); // 解决Promise，返回用户数据
+      } else {
+        setTimeout(check, 50); // 如果仍在登录中，50毫秒后再次检查
+      }
+    };
+    check(); // 开始检查登录状态
+  });
 }
