@@ -5,7 +5,7 @@
     import { useMessage } from 'naive-ui'
 
     import calendar from '@/utils/calendarUtils'
-    import { checkLogin } from '@/utils/userUtils';
+    import { checkLoginPromise } from '@/utils/userUtils';
 
     function preYear () {
         let n = show_date.value
@@ -191,7 +191,7 @@
     onMounted(() => {
         const message = useMessage()
         const router = useRouter()
-        checkLogin().then((result) => {
+        checkLoginPromise().then((result) => {
             if (!result) {
                 router.push('/')
                 message.error("请先登录！")

@@ -76,6 +76,14 @@ export const initUser = () => {
  * @returns true or false
  */
 export const checkLogin = () => {
+  return memoryUtils.userdata && memoryUtils.userdata.username;
+}
+
+/**
+ * 检查是否的登录
+ * @returns true or false
+ */
+export const checkLoginPromise = () => {
   return new Promise((resolve, reject) => {
     const check = () => {
       if (!isLogining) {
