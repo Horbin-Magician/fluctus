@@ -7,6 +7,7 @@ class BaseConfig(object):
 
 class ProductionConfig(BaseConfig):
   DEBUG = False
+  SESSION_COOKIE_SECURE = True
 
 class DevelopmentConfig(BaseConfig):
   pass
