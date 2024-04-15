@@ -9,13 +9,6 @@
   import { checkLogin } from '@/utils/userUtils';
   import { getSecret, updateState, updateMessage } from '@/api/secretAPI'
 
-  const message = useMessage()
-  const router = useRouter()
-  if(!checkLogin()) {
-      router.push('/')
-      message.error("请先登录！")
-  }
-
   // states
   const secret_state = ref(-1); // -1: first see, 0: seen, 1: like, 2: dislike
   let secret = null;
@@ -93,6 +86,13 @@
   }
 
   onMounted(() => {
+    const message = useMessage()
+    const router = useRouter()
+    if(!checkLogin()) {
+        router.push('/')
+        message.error("请先登录！")
+    }
+
     const start_words_first = 
       '欢迎来到秘密树洞！@' +
       '从今天到小小语毕业，这里每天都会浮现一条小小槟的“小秘密”。@' +

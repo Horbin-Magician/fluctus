@@ -4,7 +4,8 @@ import storageUtils from './storageUtils'
 /**
  * 用户登录
  */
-let updateFuns = [] //用户状态更新回调函数
+let updateFuns = []    //用户状态更新回调函数
+let isLogining = false //是否正在登录
 
 //添加回调
 export const addUpdateFun = (fun) =>{
@@ -25,24 +26,25 @@ const update = ()=>{
  * @returns 结果promise
  */
 export const userlogin = (username, password) => {
+  isLogining = true
   return new Promise((resolve) => {
     reqLogin(username, password).then(data => {
       if (data && data.status === '0') {//登入成功
         const authority = data.authority
         memoryUtils.userdata = { username, password, authority}
         storageUtils.saveUser({ username, password, authority })
-        update()//更新
         data['message'] = "登录成功，欢迎回来~"
       } else {//账号或密码错误
         const user = storageUtils.getUser()
         if (user.username){
           storageUtils.removeUser()
           memoryUtils.userdata = null
-          update()//更新
           data['message'] = "登录已失效，请重新登陆！"
         }
         else data['message'] = "登录失败，账号或密码错误！";
       }
+      update()//更新
+      isLogining = false
       resolve(data)
     })
   })

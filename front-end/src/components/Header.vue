@@ -5,7 +5,7 @@
     import { RouterLink, useRouter, useRoute } from 'vue-router'
 
     import '@/assets/icons/iconfont'
-    import { userlogin, initUser, checkLogin, userlogout } from '@/utils/userUtils';
+    import { userlogin, initUser, checkLogin, userlogout, addUpdateFun} from '@/utils/userUtils';
     import storageUtils from '@/utils/storageUtils';
     
     const route = useRoute()
@@ -13,6 +13,11 @@
     const docBody = document.body
     const message = useMessage()
 
+    const router_items = ref({
+        '首页': {path: '/', shown: true},
+        '日历': {path: '/calendar', shown: false},
+        '关于': {path: '/about', shown: true}
+    })
     const now_page =  ref(route.path.slice(1).split('/')[0])
     const showLoginModal = ref(false)
     const showLogoutModal = ref(false)
@@ -21,16 +26,19 @@
     const user_key = ref('')
     const nav_track_left = ref('10px')
 
+    addUpdateFun(update_routers)
     // 初始化User信息
     initUser().then(data =>{
         if(data && data.status == 0) message.success(data.message)
     })
+
     // 初始化theme信息
     const theme_storaged = storageUtils.getTheme()
     if(theme_storaged != null && theme_storaged != theme){
         docBody.setAttribute('theme', theme_storaged)
         theme.value = theme_storaged
     }
+
     // 定义函数
     const switchDocumentTheme = () => {
         theme.value = (theme.value == "light") ? "dark" : "light"
@@ -48,6 +56,7 @@
             }
         })
     }
+
     function onLogoClicked(){
         if(checkLogin()){
             showLogoutModal.value = true
@@ -70,8 +79,15 @@
                 break;
         }
     }
-    // 初始化nav_track_left
-    update_track_left()
+    update_track_left() // 初始化nav_track_left
+
+    function update_routers(){
+        if(checkLogin()){
+            router_items.value['日历'].shown = true
+        } else {
+            router_items.value['日历'].shown = false
+        }
+    }
 
     // 监听路由变化
     router.afterEach((to, from) => {
@@ -89,9 +105,9 @@
         </div>
         <div class="left-bar">
             <div class="nav">
-                <router-link to="/" class="link"> 首页 </router-link>
-                <router-link to="/calendar" class="link" v-if="checkLogin()"> 日历 </router-link>
-                <router-link to="/about" class="link"> 关于 </router-link>
+                <div v-for="(value, key) in router_items" :key="key">
+                    <router-link :to="value.path" class="link" v-if="value.shown"> {{key}} </router-link>
+                </div>
                 <div class="nav-track"> </div>
             </div>
             <div class="theme" @click="switchDocumentTheme">

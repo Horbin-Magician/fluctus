@@ -7,13 +7,6 @@
     import calendar from '@/utils/calendarUtils'
     import { checkLogin } from '@/utils/userUtils';
 
-    const message = useMessage()
-    const router = useRouter()
-    if(!checkLogin()) {
-        router.push('/')
-        message.error("请先登录！")
-    }
-
     function preYear () {
         let n = show_date.value
         n.setFullYear(n.getFullYear() - 1)
@@ -194,6 +187,15 @@
 
     const weeks = ["一", "二", "三", "四", "五", "六", "日"]
     const monthData = ref(generateMonth(show_date.value))
+
+    onMounted(() => {
+        const message = useMessage()
+        const router = useRouter()
+        if(!checkLogin()) {
+            router.push('/')
+            message.error("请先登录！")
+        }
+    });
 </script>
 
 <template>
