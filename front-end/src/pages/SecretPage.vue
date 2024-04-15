@@ -80,7 +80,9 @@
   }
 
   function onUpdateMessage(){
-    updateMessage(msg_board_text.value).then(data => {
+    let update_message = msg_board_text.value
+    update_message = update_message.replace(/\n/g, "@");
+    updateMessage(update_message).then(data => {
       if(data && data.status === '0') {
         message.success("留言成功！");
         showMsgBoardModal.value = false;
@@ -107,7 +109,7 @@
         if(data && data.status === '0') {
           data = data.data
           secret_state.value = parseInt(data.state)
-          msg_board_text.value = data.message
+          msg_board_text.value = data.message.replace(/@/g, "\n");
           secret = data.secret
           
           if(secret_state.value === -1) {
