@@ -9,6 +9,9 @@
   import { checkLoginPromise } from '@/utils/userUtils';
   import { getSecret, updateState, updateMessage } from '@/api/secretAPI'
 
+  const message = useMessage()
+  const router = useRouter()
+
   // states
   const secret_state = ref(-1); // -1: first see, 0: seen, 1: like, 2: dislike
   let secret = null;
@@ -86,8 +89,6 @@
   }
 
   onMounted(() => {
-    const message = useMessage()
-    const router = useRouter()
     checkLoginPromise().then((result) => {
       if (!result) {
           router.push('/')
