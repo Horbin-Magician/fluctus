@@ -12,4 +12,4 @@ if is_debug_mode: app.config.from_object("www.settings.DevelopmentConfig")
 else: app.config.from_object("www.settings.ProductionConfig")
 
 app.register_blueprint(api, url_prefix='/api') # 注册蓝图api
-cors = CORS(app, supports_credentials=True) # 允许跨域
+cors = CORS(app, resources={r"/api/*": {"origins": "https://fluctus.cc"}}, supports_credentials=True) # 允许跨域

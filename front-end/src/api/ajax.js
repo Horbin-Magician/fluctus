@@ -4,6 +4,8 @@
  */
 import axios from 'axios'
 
+axios.defaults.withCredentials = true;
+
 export default function ajax(url, data = {}, type = 'GET') {
   if(process.env.NODE_ENV == 'production') url = 'https://api.fluctus.cc' + url
   return new Promise((resolve) => {

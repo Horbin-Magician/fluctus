@@ -13,7 +13,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api": "https://api.fluctus.cc",
+      "/api": "http://localhost:5000",
     },
   },
 })
