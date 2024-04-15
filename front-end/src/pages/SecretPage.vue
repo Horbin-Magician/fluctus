@@ -89,10 +89,10 @@
     const message = useMessage()
     const router = useRouter()
     checkLogin().then((result) => {
-        if (!result) {
-            router.push('/')
-            message.error("请先登录！")
-        }
+      if (!result) {
+          router.push('/')
+          message.error("请先登录！")
+      }
 
       const start_words_first = 
         '欢迎来到秘密树洞！@' +
@@ -102,28 +102,35 @@
       const start_words = '准备好接收今天的小秘密了吗？';
 
       // update states
-      getSecret().then(data => {
-        if(data && data.status === '0') {
-          data = data.data
-          secret_state.value = parseInt(data.state)
-          msg_board_text.value = data.message
-          secret = data.secret
-          
-          if(secret_state.value === -1) {
-            // 得到格式化的当前日期
-            const today = new Date();
-            const year = today.getFullYear(); // 获取年份
-            const month = today.getMonth() + 1; // 获取月份，月份是从0开始的，所以需要加1
-            const date = today.getDate(); // 获取日期
-            const formattedDate = year + String(month).padStart(2, '0') + String(date).padStart(2, '0');
-            // 根据日期判断提示词
-            if(formattedDate == '20240415') typeLines(start_words_first);
-            else typeLines(start_words);
+      let try_num = 3;
+      function initSecret() {
+        getSecret().then(data => {
+          if(data && data.status === '0') {
+            data = data.data
+            secret_state.value = parseInt(data.state)
+            msg_board_text.value = data.message
+            secret = data.secret
+            
+            if(secret_state.value === -1) {
+              // 得到格式化的当前日期
+              const today = new Date();
+              const year = today.getFullYear(); // 获取年份
+              const month = today.getMonth() + 1; // 获取月份，月份是从0开始的，所以需要加1
+              const date = today.getDate(); // 获取日期
+              const formattedDate = year + String(month).padStart(2, '0') + String(date).padStart(2, '0');
+              // 根据日期判断提示词
+              if(formattedDate == '20240415') typeLines(start_words_first);
+              else typeLines(start_words);
+            } else {
+              typeLines(secret);
+            }
           } else {
-            typeLines(secret);
+            try_num -= 1;
+            if(try_num > 0) setTimeout(initSecret, 50); // 如果没有获取成功，50毫秒后再次检查
           }
-        }
-      })
+        });
+      }
+      initSecret();
     });
   });
 </script>
