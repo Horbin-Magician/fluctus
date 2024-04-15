@@ -128,7 +128,6 @@
             const date = today.getDate(); // 获取日期
             const hour = today.getHours(); // 获取小时
             let formattedDate = year + String(month).padStart(2, '0') + String(date).padStart(2, '0');
-            formattedDate = '20240416'
             // 根据日期判断提示词
             let type_words = start_words;
             if(formattedDate == '20240415') type_words = start_words_first;

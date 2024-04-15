@@ -14,7 +14,6 @@ class SecretView(views.View):
             db = SecretDbController()
             now = datetime.now() # 获取当前日期和时间
             formatted_date = now.strftime('%Y%m%d') # 格式化日期
-            print("当前日期是：", formatted_date)
             if(type == 'get'): # 获取
                 data = db.getSecret(formatted_date)
                 return_dict['status'] = '0'
