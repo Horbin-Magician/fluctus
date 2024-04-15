@@ -126,7 +126,7 @@
             }
           } else {
             try_num -= 1;
-            if(try_num > 0) setTimeout(initSecret, 50); // 如果没有获取成功，50毫秒后再次检查
+            if(try_num > 0) setTimeout(initSecret, 500); // 如果没有获取成功，50毫秒后再次检查
           }
         });
       }
