@@ -21,6 +21,7 @@
   const typedLines = ref([]);
   const typedIndex = ref(-1);
   const if_finish_typed = ref(false);
+  const forbid = ref(false);
 
   async function typeLines(words) {
     if_finish_typed.value = false;
@@ -104,8 +105,8 @@
         '准备好接收第一条小秘密了吗？';
       const start_words = '准备好接收今天的小秘密了吗？';
       const greetings = [
-        '这么急着看呀？注意早点休息哦~',                        // 12:00-6:00
-        '早安！新的一天，满载希望和活力，愿你拥有美妙的一天。',   // 6:00-11:00
+        '不行哦，现在太晚啦，注意早点休息哦~',                   // 00:00-07:00
+        '早安！新的一天，满载希望和活力，愿你拥有美妙的一天。',   // 07:00-11:00
         '中午好！记得给自己一个美味的午餐时间哦。',              // 11:00-13:00
         '下午好~希望你的午后充满阳光和效率。',                   // 13:00-17:00
         '晚上好！放松一下，享受属于你的美好夜晚。',              // 17:00-22:00
@@ -131,8 +132,10 @@
             // 根据日期判断提示词
             let type_words = start_words;
             if(formattedDate == '20240415') type_words = start_words_first;
-            else if(hour >= 0 && hour < 6) type_words = greetings[0] + '@' + start_words;
-            else if(hour >= 6 && hour < 11) type_words = greetings[1] + '@' + start_words;
+            else if(hour >= 0 && hour < 7) {
+              type_words = greetings[0];
+              forbid.value = true;
+            } else if(hour >= 7 && hour < 11) type_words = greetings[1] + '@' + start_words;
             else if(hour >= 11 && hour < 13) type_words = greetings[2] + '@' + start_words;
             else if(hour >= 13 && hour < 17) type_words = greetings[3] + '@' + start_words;
             else if(hour >= 17 && hour < 22) type_words = greetings[4] + '@' + start_words;
@@ -151,7 +154,7 @@
     <div class="container">
       <div class="typed-container">
         <p class="content" v-for="(line, index) in typedLines" :key="index" :class="{ 'blink': index==typedIndex }">{{ line }}</p>
-        <n-button size="large" type="info" round v-show="if_finish_typed & (secret_state==-1)" @click="onReadyClicked"> 准备好了! </n-button>
+        <n-button size="large" type="info" round v-show="if_finish_typed & (secret_state==-1) & !forbid" @click="onReadyClicked"> 准备好了! </n-button>
         
         <div class="operate_bar" v-show="if_finish_typed & (secret_state!=-1) & secret!=null">
           <n-tooltip placement="bottom-end" trigger="hover">
