@@ -132,7 +132,10 @@
             // 根据日期判断提示词
             let type_words = start_words;
             if(formattedDate == '20240415') type_words = start_words_first;
-            else if(hour >= 0 && hour < 7) {
+            else if (parseInt(formattedDate) > 20240523) {
+              type_words = "秘密树洞暂时关停啦~";
+              forbid.value = true;
+            } else if(hour >= 0 && hour < 7) {
               type_words = greetings[0];
               forbid.value = true;
             } else if(hour >= 7 && hour < 11) type_words = greetings[1] + '@' + start_words;
