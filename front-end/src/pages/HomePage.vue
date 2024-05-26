@@ -126,7 +126,7 @@
         </div>
         <div class="fav">
             <div class="fav-item" @click="openURL('https://www.bilibili.com/')">
-                <img src="https://www.bilibili.com/favicon.ico?v=1"/>
+                <img src="https://www.bilibili.com/favicon.ico"/>
             </div>
             <div class="fav-item" @click="openURL('https://github.com/')">
                 <img src="https://github.githubassets.com/favicons/favicon.png"/>
