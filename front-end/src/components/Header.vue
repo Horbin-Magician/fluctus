@@ -7,6 +7,8 @@
         CloudOutline as PanIcon,
         BookOutline as BlogIcon,
         Apps as AppsIcon,
+        Sunny as SunIcon,
+        Moon as MoonIcon,
     } from "@vicons/ionicons5";
 
     import '@/assets/icons/iconfont'
@@ -90,9 +92,9 @@
     function handleAppSelect(key){
         message.info(String(key));
         if(key == "pan") {
-            window.open('https://pan.fluctus.cc/')
+            window.location.href = 'https://pan.fluctus.cc/'
         } else if(key == "blog") {
-            window.open('https://blog.fluctus.cc/')
+            window.location.href = 'https://blog.fluctus.cc/'
         }
     }
 
@@ -138,16 +140,14 @@
                 <div class="nav-track"> </div>
             </div>
             <div class="theme" @click="switchDocumentTheme">
-                <svg class="icon" aria-hidden="true">
-                    <use xlink:href="#icon-sun" v-if="theme == 'light'"></use>
-                    <use xlink:href="#icon-moon" v-if="theme == 'dark'"></use>
-                </svg>
+                <div class="icon">
+                    <n-icon size="26" v-if="theme == 'light'"> <SunIcon /> </n-icon>
+                    <n-icon size="26" v-if="theme == 'dark'"> <MoonIcon /> </n-icon>
+                </div>
             </div>
             <div class="app">
                 <n-dropdown trigger="hover" :options="app_options" @select="handleAppSelect" :show-arrow="true">
-                    <n-icon size="30">
-                        <AppsIcon />
-                    </n-icon>
+                    <n-icon size="26"> <AppsIcon /> </n-icon>
                 </n-dropdown>
             </div>
         </div>
@@ -239,16 +239,21 @@ header{
 }
 
 .app{
-    width: 30px;
-    height: 30px;
-    margin-left: 10px;
+    width: 26px;
+    height: 26px;
+    margin-left: 20px;
     margin-right: 20px;
 }
 
+.app:hover{
+    cursor: pointer;
+    color: var(--color-light);
+    filter: drop-shadow( 0px 0px 1px var(--color-light) );
+}
+
 .theme{
-    width: 30px;
-    height: 30px;
-    /* margin-right: 20px; */
+    width: 26px;
+    height: 26px;
     margin-left: 10px;
     transition: transform 0.2s ease;
     transform-origin: center center;
@@ -262,8 +267,8 @@ header{
 }
 
 .icon {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   overflow: hidden;
   fill: currentColor;
 }
