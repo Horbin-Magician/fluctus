@@ -1,5 +1,5 @@
 {
-  "name": "Fluctus",
+  "name": "fluctus",
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
