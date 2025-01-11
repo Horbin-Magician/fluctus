@@ -90,7 +90,6 @@
     }
 
     function handleAppSelect(key){
-        message.info(String(key));
         if(key == "pan") {
             window.location.href = 'https://pan.fluctus.cc/'
         } else if(key == "blog") {
