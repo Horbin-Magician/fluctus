@@ -1,6 +1,6 @@
 @font-face {
   font-family: "iconfont"; /* Project id 2555634 */
-  src: url('iconfont.svg?t=1736609173488#iconfont') format('svg');
+  src: url('iconfont.svg?t=1736614095388#iconfont') format('svg');
 }
 
 .iconfont {
@@ -9,22 +9,6 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-.icon-apps:before {
-  content: "\e606";
-}
-
-.icon-like:before {
-  content: "\ec8c";
-}
-
-.icon-msgboard:before {
-  content: "\e64e";
-}
-
-.icon-search:before {
-  content: "\e615";
 }
 
 .icon-google:before {
@@ -45,13 +29,5 @@
 
 .icon-logo:before {
   content: "\e603";
-}
-
-.icon-sun:before {
-  content: "\e600";
-}
-
-.icon-moon:before {
-  content: "\e7d7";
 }
 

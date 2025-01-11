@@ -1,6 +1,11 @@
 <!-- 主页 Home -->
 <script setup>
     import { ref, watch } from 'vue';
+    import { NIcon } from 'naive-ui'
+    import {
+        Search as SearchIcon,
+        LogoGoogle as GoogleIcon,
+    } from "@vicons/ionicons5";
 
     import '@/assets/icons/iconfont'
     import { reqSugList } from '@/api/searchAPI'
@@ -112,9 +117,7 @@
                     </svg>
                 </div>
                 <input class="search-input" @keydown="filterUpDownKey" @keyup.enter="search" v-model="searchValue"/>
-                <svg class="search-icon" @mousedown="search">
-                    <use xlink:href="#icon-search"></use>
-                </svg>
+                <n-icon size="28" class="search-icon" @mousedown="search"> <SearchIcon /> </n-icon>
             </div>
             <div>
                 <div v-for="(sug, index) in sugList" :key="index"
@@ -208,6 +211,7 @@
         width: 28px;
         height: 28px;
         border-radius: 14px;
+        color: var(--color-light);
         fill: var(--color-light);
         cursor: pointer;
     }
