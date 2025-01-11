@@ -124,14 +124,6 @@
                 </div>
             </div>
         </div>
-        <div class="fav">
-            <div class="fav-item" @click="openURL('https://www.bilibili.com/')">
-                <img src="https://www.bilibili.com/favicon.ico"/>
-            </div>
-            <div class="fav-item" @click="openURL('https://github.com/')">
-                <img src="https://github.githubassets.com/favicons/favicon.png"/>
-            </div>
-        </div>
         <div class="overlay"></div>
     </div>
 </template>
@@ -258,32 +250,6 @@
         height: 100%;
         transition: 0.3s ease-out;
         z-index: -1;
-    }
-    .fav{
-        height: 100%;
-        grid-row-start: 4;
-        display: flex;
-    }
-
-    .fav-item{
-        height: 50px;
-        width: 50px;
-        border-radius: 50%;
-        padding: 8px;
-        margin: 4px;
-        border: 2px solid var(--color-light);
-        font-size: 13px;
-        transition: all 0.2s ease-out;
-    }
-
-    .fav-item:hover{
-        box-shadow: 0 0 5px var(--color-light);
-        cursor: pointer;
-    }
-
-    .fav-item img{
-        height: 100%;
-        width: 100%;
     }
 
     @keyframes floatImage {
