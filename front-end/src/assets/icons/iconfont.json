@@ -6,6 +6,13 @@
   "description": "个人应用站",
   "glyphs": [
     {
+      "icon_id": "43118452",
+      "name": "apps",
+      "font_class": "apps",
+      "unicode": "e606",
+      "unicode_decimal": 58886
+    },
+    {
       "icon_id": "6380878",
       "name": "点赞_块",
       "font_class": "like",

@@ -1,6 +1,6 @@
 @font-face {
   font-family: "iconfont"; /* Project id 2555634 */
-  src: url('iconfont.svg?t=1712762742721#iconfont') format('svg');
+  src: url('iconfont.svg?t=1736609173488#iconfont') format('svg');
 }
 
 .iconfont {
@@ -9,6 +9,10 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-apps:before {
+  content: "\e606";
 }
 
 .icon-like:before {

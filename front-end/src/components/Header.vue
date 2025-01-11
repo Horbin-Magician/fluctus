@@ -1,8 +1,13 @@
 <!-- 页头 Header -->
 <script setup>
-    import { NModal, useMessage } from 'naive-ui'
-    import { ref } from 'vue'
+    import { ref, h } from 'vue'
     import { RouterLink, useRouter, useRoute } from 'vue-router'
+    import { NModal, useMessage, NDropdown, NIcon } from 'naive-ui'
+    import {
+        CloudOutline as PanIcon,
+        BookOutline as BlogIcon,
+        Apps as AppsIcon,
+    } from "@vicons/ionicons5";
 
     import '@/assets/icons/iconfont'
     import { userlogin, initUser, checkLogin, userlogout, addUpdateFun} from '@/utils/userUtils';
@@ -25,6 +30,19 @@
     const user_name = ref('')
     const user_key = ref('')
     const nav_track_left = ref('10px')
+
+    function renderIcon(icon) {
+        return () => {
+            return h(NIcon, null, {
+                default: () => h(icon)
+            });
+        };
+    }
+    
+    const app_options = [
+        { label: '网盘', key: 'pan', icon: renderIcon(PanIcon)},
+        { label: '博客', key: 'blog', icon: renderIcon(BlogIcon) }
+    ]
 
     addUpdateFun(update_routers)
     // 初始化User信息
@@ -67,6 +85,15 @@
         userlogout()
         update_track_left()
         message.success("注销成功！")
+    }
+
+    function handleAppSelect(key){
+        message.info(String(key));
+        if(key == "pan") {
+            window.open('https://pan.fluctus.cc/')
+        } else if(key == "blog") {
+            window.open('https://blog.fluctus.cc/')
+        }
     }
 
     function update_track_left(){
@@ -115,6 +142,13 @@
                     <use xlink:href="#icon-sun" v-if="theme == 'light'"></use>
                     <use xlink:href="#icon-moon" v-if="theme == 'dark'"></use>
                 </svg>
+            </div>
+            <div class="app">
+                <n-dropdown trigger="hover" :options="app_options" @select="handleAppSelect" :show-arrow="true">
+                    <n-icon size="30">
+                        <AppsIcon />
+                    </n-icon>
+                </n-dropdown>
             </div>
         </div>
     </header>
@@ -204,10 +238,17 @@ header{
     transition: .3s;
 }
 
+.app{
+    width: 30px;
+    height: 30px;
+    margin-left: 10px;
+    margin-right: 20px;
+}
+
 .theme{
     width: 30px;
     height: 30px;
-    margin-right: 20px;
+    /* margin-right: 20px; */
     margin-left: 10px;
     transition: transform 0.2s ease;
     transform-origin: center center;
