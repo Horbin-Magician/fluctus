@@ -19,8 +19,8 @@ jobs:
       - name: Install dependencies and build
         run: |
           cd front-end/
-          yarn
-          yarn build
+          npm
+          npm run build
       - name: Deploy front-end to aliyun
         uses: easingthemes/ssh-deploy@v3
         with:
