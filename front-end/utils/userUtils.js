@@ -84,7 +84,7 @@ export const checkLogin = () => {
  * @returns true or false
  */
 export const checkLoginPromise = () => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const check = () => {
       if (!isLogining) {
         resolve(memoryUtils.userdata && memoryUtils.userdata.username); // 解决Promise，返回用户数据
