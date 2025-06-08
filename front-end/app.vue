@@ -1,6 +1,6 @@
 <script setup>
   import { NMessageProvider } from 'naive-ui';
-  import './assets/main.css'
+  import './assets/css/main.css'
 </script>
 
 <template>
