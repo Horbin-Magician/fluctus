@@ -4,7 +4,6 @@
     import { NIcon } from 'naive-ui'
     import {
         Search as SearchIcon,
-        LogoGoogle as GoogleIcon,
     } from "@vicons/ionicons5";
 
     import '@/assets/icons/iconfont'
