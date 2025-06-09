@@ -1,7 +1,6 @@
 <!-- 页头 Header -->
 <script setup>
     import { ref, h } from 'vue'
-    import { RouterLink, useRouter, useRoute } from 'vue-router'
     import { NModal, useMessage, NDropdown, NIcon } from 'naive-ui'
     import {
         CloudOutline as PanIcon,
@@ -134,7 +133,7 @@
         <div class="left-bar">
             <div class="nav">
                 <div v-for="(value, key) in router_items" :key="key">
-                    <router-link v-if="value.shown" :to="value.path" class="link"> {{key}} </router-link>
+                    <NuxtLink v-if="value.shown" :to="value.path" class="link"> {{key}} </NuxtLink>
                 </div>
                 <div class="nav-track"/>
             </div>
