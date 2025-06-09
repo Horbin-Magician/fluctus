@@ -25,16 +25,16 @@
 
     const searchSources = {'baidu':'https://www.baidu.com/s?wd=', 'bing':'https://cn.bing.com/search?q=', 'google':'https://www.google.com/search?q='}
 
-    let search = () => {
+    const search = () => {
         if(selectedSugIndex.value == null) openURL(searchSources[nowSearchSource.value] + searchValue.value);
         else openURL(searchSources[nowSearchSource.value] + sugList.value[selectedSugIndex.value]['q']);
     }
 
-    let openURL = (url) => {
+    const openURL = (url) => {
         window.location.href=url;
     }
 
-    let selectPre = (event) => {
+    const selectPre = (event) => {
         if(selectedSugIndex.value == null){
             selectedSugIndex.value = 0
             return
@@ -44,7 +44,7 @@
         selectedSugIndex.value = selectedSugIndex.value - 1
     }
 
-    let selectNext = (event) => {
+    const selectNext = (event) => {
         if(selectedSugIndex.value == null){
             selectedSugIndex.value = 0
             return
@@ -54,12 +54,12 @@
         selectedSugIndex.value = selectedSugIndex.value + 1
     }
 
-    let filterUpDownKey = (event)=>{
-        var key_num = event.keyCode
+    const filterUpDownKey = (event)=>{
+        const key_num = event.keyCode
         if (38 == key_num || 40 == key_num) event.preventDefault()
     }
 
-    let changeSearchSource = (sourse, flag = undefined)=>{
+    const changeSearchSource = (sourse, flag = undefined)=>{
         console.log(flag)
         if(flag == 'out'){
             changingSearchSource.value = false;
@@ -97,36 +97,39 @@
 <template>
     <div class="container" @mousemove="watchMouseMove">
         <svg id="homelogo">
-            <use xlink:href="#icon-homelogo"></use>
+            <use xlink:href="#icon-homelogo"/>
         </svg>
         <div class="search-div" tabIndex="0" @keyup.up.prevent="selectPre" @keyup.down.prevent="selectNext">
             <div class="search-input-container">
-                <div class="search-icon-source-container"
+                <div
+class="search-icon-source-container"
                 :style="{width:changingSearchSource ? '100px' : '28px'}"
                 tabindex = "-1"
                 @focusout="()=>changeSearchSource(undefined, 'out')">
                     <svg class="search-icon" @click="()=>changeSearchSource()">
-                        <use :xlink:href="'#icon-' + nowSearchSource"></use>
+                        <use :xlink:href="'#icon-' + nowSearchSource"/>
                     </svg>
-                    <svg v-for="(searchSource, index) in Object.keys(searchSources)" :key="searchSource"
+                    <svg
+v-for="searchSource in Object.keys(searchSources)" :key="searchSource"
                     :class="{'search-icon':true, 'select-source': true}"
-                    @click="()=>changeSearchSource(searchSource)"
-                    :display="searchSource == nowSearchSource ? 'none' : 'inline'">
-                        <use :xlink:href="'#icon-' + searchSource"></use>
+                    :display="searchSource == nowSearchSource ? 'none' : 'inline'"
+                    @click="()=>changeSearchSource(searchSource)">
+                        <use :xlink:href="'#icon-' + searchSource"/>
                     </svg>
                 </div>
-                <input class="search-input" @keydown="filterUpDownKey" @keyup.enter="search" v-model="searchValue"/>
+                <input v-model="searchValue" class="search-input" @keydown="filterUpDownKey" @keyup.enter="search">
                 <n-icon size="28" class="search-icon" @mousedown="search"> <SearchIcon /> </n-icon>
             </div>
             <div>
-                <div v-for="(sug, index) in sugList" :key="index"
+                <div
+v-for="(sug, index) in sugList" :key="index"
                 :class="{'sug-item':true, 'selected-sug': selectedSugIndex == index}"
                 @mouseenter="()=>{selectedSugIndex = index}" @click="search">
                     {{ sug['q'] }}
                 </div>
             </div>
         </div>
-        <div class="overlay"></div>
+        <div class="overlay"/>
     </div>
 </template>
 
