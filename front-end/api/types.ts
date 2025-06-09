@@ -39,14 +39,13 @@ export interface AuthorityListResponse {
 }
 
 // 搜索相关类型
-export interface SearchSuggestion {
-  word: string
+export interface SuggestionItem {
+  q: string
+  word?: string
   [key: string]: unknown
 }
 
-export interface SugListResponse {
-  suggestions: SearchSuggestion[]
-}
+export type SugListResponse = SuggestionItem[]
 
 // 秘密相关类型
 export interface SecretInfo {

@@ -1,4 +1,4 @@
-from flask import views,request,session
+from flask import views,request,session,jsonify
 import json
 
 from tools.dbControllers.BaseDbController import BaseDbController
@@ -33,4 +33,4 @@ class AuthorityView(views.View):
         db.delAuthority(name)
         return_dict['status'] = '0'
 
-    return json.dumps(return_dict)
+    return jsonify(return_dict)

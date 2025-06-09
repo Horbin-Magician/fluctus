@@ -1,4 +1,4 @@
-from flask import views,request,session
+from flask import views,request,session,jsonify
 import json
 
 from tools.dbControllers.BaseDbController import BaseDbController
@@ -22,4 +22,4 @@ class LoginView(views.View):
         return_dict['status'] = '0'
         return_dict['username'] = username
         return_dict['authority'] = userData[2]
-    return json.dumps(return_dict)
+    return jsonify(return_dict)

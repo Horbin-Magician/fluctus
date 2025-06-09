@@ -1,4 +1,4 @@
-from flask import views, request, session
+from flask import views, request, session, jsonify
 from datetime import datetime
 import json
 
@@ -23,4 +23,4 @@ class SecretView(views.View):
                 message = request.json.get('message')
                 db.updateState(formatted_date, state, message)
                 return_dict['status'] = '0'
-        return json.dumps(return_dict)
+        return jsonify(return_dict)

@@ -1,4 +1,4 @@
-from flask import views,request
+from flask import views,request,jsonify
 import json
 import requests
 
@@ -14,4 +14,4 @@ class BaiduView(views.View):
     word = request.json.get('word')
     response = requests.get('https://www.baidu.com/sugrec?prod=pc&wd=' + word)
     return_dict['data'] = response.json()['g']
-    return json.dumps(return_dict)
+    return jsonify(return_dict)

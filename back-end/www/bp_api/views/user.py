@@ -1,4 +1,4 @@
-from flask import views,request,session
+from flask import views, request, session, jsonify
 import json
 
 from tools.dbControllers.BaseDbController import BaseDbController
@@ -34,4 +34,5 @@ class UserView(views.View):
         username = request.json.get('username')
         db.delUser(username)
         return_dict['status'] = '0'
-    return json.dumps(return_dict)
+    
+    return jsonify(return_dict)

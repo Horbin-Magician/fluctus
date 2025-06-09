@@ -1,5 +1,5 @@
 <!-- 主页 Home -->
-<script setup>
+<script setup lang="ts">
     import { ref, watch } from 'vue';
     import { NIcon } from 'naive-ui'
     import {
@@ -7,34 +7,39 @@
     } from "@vicons/ionicons5";
 
     import '@/assets/icons/iconfont'
-    import { reqSugList } from '@/api/searchAPI'
+    import type { ApiResponse, SugListResponse } from '@/api';
+    import { reqSugList } from '@/api'
     import storageUtils from '@/utils/storageUtils';
 
     const searchValue = ref('')
-    const sugList = ref([])
+    const sugList = ref<SugListResponse>([])
     const searchDivHeight = ref('40px')
-    const selectedSugIndex = ref(null)
+    const selectedSugIndex = ref<number | null>(null)
 
     const changingSearchSource = ref(false)
 
     const logoOffsetX = ref('0px')
     const logoOffsetY = ref('0px')
 
+    const searchSources = {
+        baidu: 'https://www.baidu.com/s?wd=',
+        bing: 'https://cn.bing.com/search?q=',
+        google: 'https://www.google.com/search?q='
+    } as const;
+    type SearchSourceKey = keyof typeof searchSources;
     const defaultSearchSource = storageUtils.getDefaultSearchSource()
-    const nowSearchSource = ref(defaultSearchSource ? defaultSearchSource : 'baidu')
-
-    const searchSources = {'baidu':'https://www.baidu.com/s?wd=', 'bing':'https://cn.bing.com/search?q=', 'google':'https://www.google.com/search?q='}
+    const nowSearchSource = ref<SearchSourceKey>(defaultSearchSource && Object.keys(searchSources).includes(defaultSearchSource) ? defaultSearchSource as SearchSourceKey : 'baidu');
 
     const search = () => {
         if(selectedSugIndex.value == null) openURL(searchSources[nowSearchSource.value] + searchValue.value);
         else openURL(searchSources[nowSearchSource.value] + sugList.value[selectedSugIndex.value]['q']);
     }
 
-    const openURL = (url) => {
+    const openURL = (url: string) => {
         window.location.href=url;
     }
 
-    const selectPre = (event) => {
+    const selectPre = (event: KeyboardEvent) => {
         if(selectedSugIndex.value == null){
             selectedSugIndex.value = 0
             return
@@ -44,7 +49,7 @@
         selectedSugIndex.value = selectedSugIndex.value - 1
     }
 
-    const selectNext = (event) => {
+    const selectNext = (event: KeyboardEvent) => {
         if(selectedSugIndex.value == null){
             selectedSugIndex.value = 0
             return
@@ -54,14 +59,13 @@
         selectedSugIndex.value = selectedSugIndex.value + 1
     }
 
-    const filterUpDownKey = (event)=>{
-        const key_num = event.keyCode
-        if (38 == key_num || 40 == key_num) event.preventDefault()
+    const filterUpDownKey = (event: KeyboardEvent)=>{
+        const key = event.key
+        if (key === 'ArrowUp' || key === 'ArrowDown') event.preventDefault()
     }
 
-    const changeSearchSource = (sourse, flag = undefined)=>{
-        console.log(flag)
-        if(flag == 'out'){
+    const changeSearchSource = (sourse: string = "", justOut: boolean = false)=>{
+        if(justOut){
             changingSearchSource.value = false;
             return
         }
@@ -71,8 +75,8 @@
             return;
         }
 
-        if(sourse){
-            nowSearchSource.value = sourse;
+        if(sourse != ""){
+            nowSearchSource.value = sourse as SearchSourceKey;
             storageUtils.setDefaultSearchSource(sourse);
         }
         changingSearchSource.value = false;
@@ -80,9 +84,11 @@
 
     watch(searchValue, async(newValue, oldValue) => {
         if(newValue != oldValue && newValue != ''){
-            reqSugList(newValue).then(data => {
+            reqSugList(newValue).then((data: ApiResponse<SugListResponse>) => {
                 if(searchValue.value != ''){
-                    sugList.value = data['data']
+                    console.log((data.data as SugListResponse))
+                    sugList.value = (data.data as SugListResponse);
+                    console.log(sugList.value)
                     searchDivHeight.value = sugList.value.length * 34 + 45 + 'px'
                 }
             })
@@ -95,7 +101,7 @@
 </script>
 
 <template>
-    <div class="container" @mousemove="watchMouseMove">
+    <div class="container">
         <svg id="homelogo">
             <use xlink:href="#icon-homelogo"/>
         </svg>
@@ -105,7 +111,7 @@
 class="search-icon-source-container"
                 :style="{width:changingSearchSource ? '100px' : '28px'}"
                 tabindex = "-1"
-                @focusout="()=>changeSearchSource(undefined, 'out')">
+                @focusout="()=>changeSearchSource('', true)">
                     <svg class="search-icon" @click="()=>changeSearchSource()">
                         <use :xlink:href="'#icon-' + nowSearchSource"/>
                     </svg>
