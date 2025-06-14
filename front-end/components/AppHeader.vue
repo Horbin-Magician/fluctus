@@ -1,126 +1,110 @@
 <!-- 页头 Header -->
 <script setup>
-    import { ref, h } from 'vue'
+    import { ref, h, reactive } from 'vue'
     import { NModal, useMessage, NDropdown, NIcon } from 'naive-ui'
     import {
-        CloudOutline as PanIcon,
-        BookOutline as BlogIcon,
-        Apps as AppsIcon,
-        Sunny as SunIcon,
-        Moon as MoonIcon,
+      CloudOutline as PanIcon,
+      BookOutline as BlogIcon,
+      Apps as AppsIcon,
+      Sunny as SunIcon,
+      Moon as MoonIcon,
     } from "@vicons/ionicons5";
-
     import '@/assets/icons/iconfont'
     import { userlogin, initUser, checkLogin, userlogout, addUpdateFun} from '@/utils/userUtils';
     import storageUtils from '@/utils/storageUtils';
-    
-    const route = useRoute()
-    const router = useRouter()
-    const docBody = document.body
-    const message = useMessage()
 
-    const router_items = ref({
-        '首页': {path: '/', shown: true},
-        '日历': {path: '/calendar', shown: false},
-        '关于': {path: '/about', shown: true}
+    const route = useRoute()
+    const message = useMessage()
+    const docBody = document.body
+
+    const router_items = reactive({
+      '首页': {path: '/', shown: true},
+      '日历': {path: '/calendar', shown: false},
+      '关于': {path: '/about', shown: true}
     })
-    const now_page =  ref(route.path.slice(1).split('/')[0])
+
+    const navLinks = computed(() => Object.entries(router_items)
+      .filter(([_, v]) => v.shown)
+      .map(([_, value]) => [value.path.slice(1)]))
+    const now_page =  computed(() => route.path.slice(1).split('/')[0])
+    const nav_track_left = computed(() => {
+      const idx = navLinks.value.findIndex(([key]) => key === (now_page.value))
+      return `${10 + idx * 70}px`
+    })
+
     const showLoginModal = ref(false)
     const showLogoutModal = ref(false)
     const theme = ref(docBody.getAttribute('theme'))
     const user_name = ref('')
     const user_key = ref('')
-    const nav_track_left = ref('10px')
 
     function renderIcon(icon) {
-        return () => {
-            return h(NIcon, null, {
-                default: () => h(icon)
-            });
-        };
+      return () => {
+        return h(NIcon, null, {
+          default: () => h(icon)
+        });
+      };
     }
-    
+
     const app_options = [
-        { label: '网盘', key: 'pan', icon: renderIcon(PanIcon)},
-        { label: '博客', key: 'blog', icon: renderIcon(BlogIcon) }
+      { label: '网盘', key: 'pan', icon: renderIcon(PanIcon)},
+      { label: '博客', key: 'blog', icon: renderIcon(BlogIcon) }
     ]
 
-    addUpdateFun(update_routers)
+    addUpdateFun(() => {
+      if( checkLogin() ){
+        router_items['日历'].shown = true
+      } else {
+        router_items['日历'].shown = false
+      }
+    })
+
     // 初始化User信息
     initUser().then(data =>{
-        if(data && data.status == 0) message.success(data.message)
+      if(data && data.status == 0) message.success(data.message)
     })
 
     // 初始化theme信息
     const theme_storaged = storageUtils.getTheme()
     if(theme_storaged != null && theme_storaged != theme.value){
-        docBody.setAttribute('theme', theme_storaged)
-        theme.value = theme_storaged
+      docBody.setAttribute('theme', theme_storaged)
+      theme.value = theme_storaged
     }
 
     // 定义函数
     const switchDocumentTheme = () => {
-        theme.value = (theme.value == "light") ? "dark" : "light"
-        docBody.setAttribute('theme', theme.value)
-        storageUtils.setTheme(theme.value)
+      theme.value = (theme.value == "light") ? "dark" : "light"
+      docBody.setAttribute('theme', theme.value)
+      storageUtils.setTheme(theme.value)
     }
 
     function onLogin(){
-        userlogin(user_name.value, user_key.value).then(data => {
-            if(data.status == '0') {
-                showLoginModal.value = false
-                message.success(data.message)
-            }else{
-                message.error(data.message)
-            }
-        })
+      userlogin(user_name.value, user_key.value).then(data => {
+        if(data.status == '0') {
+          showLoginModal.value = false
+          message.success(data.message)
+        }else{
+          message.error(data.message)
+        }
+      })
     }
 
     function onLogoClicked(){
-        if(checkLogin()){
-            showLogoutModal.value = true
-        }else showLoginModal.value = true
+      return checkLogin() ? showLogoutModal.value = true : showLoginModal.value = true
     }
 
     function logout(){
-        userlogout()
-        update_track_left()
-        message.success("注销成功！")
+      userlogout()
+      message.success("注销成功！")
     }
 
     function handleAppSelect(key){
-        if(key == "pan") {
-            window.location.href = 'https://pan.fluctus.cc/'
-        } else if(key == "blog") {
-            window.location.href = 'https://blog.fluctus.cc/'
-        }
+      if(key == "pan") {
+        window.location.href = 'https://pan.fluctus.cc/'
+      } else if(key == "blog") {
+        window.location.href = 'https://blog.fluctus.cc/'
+      }
     }
-
-    function update_track_left(){
-        switch(now_page.value){
-            case '': nav_track_left.value = '10px'; break;
-            case 'calendar': nav_track_left.value = String(10 + 70*1) + 'px'; break;
-            case 'about':
-                if(checkLogin()) nav_track_left.value = String(10 + 70*2) + 'px';
-                else nav_track_left.value = String(10 + 70*1) + 'px';
-                break;
-        }
-    }
-    update_track_left() // 初始化nav_track_left
-
-    function update_routers(){
-        if(checkLogin()){
-            router_items.value['日历'].shown = true
-        } else {
-            router_items.value['日历'].shown = false
-        }
-    }
-
-    // 监听路由变化
-    router.afterEach((to, _from) => {
-        now_page.value = to.path.slice(1).split('/')[0]
-        update_track_left()
-    })
 </script>
 
 <template>
@@ -135,7 +119,7 @@
                 <div v-for="(value, key) in router_items" :key="key">
                     <NuxtLink v-if="value.shown" :to="value.path" class="link"> {{key}} </NuxtLink>
                 </div>
-                <div class="nav-track"/>
+                <div v-if="!nav_track_left.startsWith('-')" class="nav-track"/>
             </div>
             <div class="theme" @click="switchDocumentTheme">
                 <div class="icon">
