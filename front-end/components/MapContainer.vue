@@ -23,8 +23,8 @@ onMounted(() => {
 
   AMapLoader.load({
     key: "3fbe22db53162479e06074420635fba4", // 申请好的Web端开发者Key，首次调用 load 时必填
-    version: "2.0", // 指定要加载的 JSAPI 的版本，缺省时默认为 1.4.15
-    plugins: ['AMap.Scale', 'AMap.PlaceSearch', 'AMap.Autocomplete', 'AMap.MouseTool'], // 需要使用的的插件列表，如比例尺'AMap.Scale'等
+    version: "2.0",
+    plugins: ['AMap.Scale', 'AMap.PlaceSearch', 'AMap.Autocomplete'],
   })
     .then((AMap) => {
       map = new AMap.Map("amap", {
@@ -36,20 +36,20 @@ onMounted(() => {
 
       // 添加地图控件
       map.addControl(new AMap.Scale()); // 添加比例尺控件
-      // map.addControl(new AMap.MouseTool());
 
       // 添加 AutoComplete, PlaceSearch 插件
-      const autoOptions = {
-        input: "search_input", //使用联想输入的 input 的 id
-      };
-      const autocomplete = new AMap.AutoComplete(autoOptions);
-      const placeSearch = new AMap.PlaceSearch({
-        city: "北京",
-        map: map,
-      });
-      autocomplete.on("select", function (e) {
-        //针对选中的poi实现自己的功能
-        placeSearch.search(e.poi.name);
+      AMap.plugin(["AMap.AutoComplete", "AMap.PlaceSearch"], function () {
+        const autoOptions = {
+          input: "search_input", //使用联想输入的 input 的 id
+        };
+        const autocomplete = new AMap.AutoComplete(autoOptions);
+        const placeSearch = new AMap.PlaceSearch({
+          map: map,
+        });
+        autocomplete.on("select", function (e) {
+          //针对选中的poi实现自己的功能
+          placeSearch.search(e.poi.name);
+        });
       });
     })
     .catch((e) => {
