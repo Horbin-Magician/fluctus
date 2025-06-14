@@ -1,5 +1,8 @@
 <template>
-  <div id="amap">
+  <div class="map-container">
+    <!-- Map container -->
+    <div id="amap"/>
+    <!-- Tool container -->
     <div class="tool-container">
       <input
         id = "search_input"
@@ -67,9 +70,14 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
 }
+
+.map-container {
+  height: 1px;
+}
+
 .tool-container {
   position: absolute;
-  top: 10px;
+  top: 80px;
   left: 10px;
   height: 60px;
   width: 400px;
