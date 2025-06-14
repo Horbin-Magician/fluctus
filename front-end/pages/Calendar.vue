@@ -1,32 +1,32 @@
 <!-- 日历页 Calendar -->
 <script setup>
     import { ref, onMounted } from 'vue';
-    import { RouterLink, useRouter, useRoute } from 'vue-router'
+    import { useRouter } from 'vue-router'
     import { useMessage } from 'naive-ui'
 
     import calendar from '@/utils/calendarUtils'
     import { checkLoginPromise } from '@/utils/userUtils';
 
     function preYear () {
-        let n = show_date.value
+        const n = show_date.value
         n.setFullYear(n.getFullYear() - 1)
         setYearMonthInfos(n)
     }
 
     function preMonth () {
-        let n = show_date.value
+        const n = show_date.value
         n.setMonth(n.getMonth() - 1)
         setYearMonthInfos(n)
     }
 
     function nextYear () {
-        let n = show_date.value
+        const n = show_date.value
         n.setFullYear(n.getFullYear() + 1)
         setYearMonthInfos(n)
     }
 
     function nextMonth(){
-        let n = show_date.value
+        const n = show_date.value
         n.setMonth(n.getMonth() + 1)
         setYearMonthInfos(n)
     }
@@ -39,16 +39,16 @@
         let weekStart = date.getDay() // 星期 0 - 6， 星期天 - 星期6
         if(weekStart == 0) weekStart += 7 // 星期 1 - 7， 星期一 - 星期日
 
-        let endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-        let dayEnd = endDate.getDate()
+        const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+        const dayEnd = endDate.getDate()
         let weeEnd = endDate.getDay()
         if(weeEnd == 0) weeEnd += 7 // 星期 1 - 7， 星期一 - 星期日
 
-        let milsStart = date.getTime()
-        let dayMils = 24 * 60 * 60 * 1000
-        let milsEnd = endDate.getTime() + dayMils
+        const milsStart = date.getTime()
+        const dayMils = 24 * 60 * 60 * 1000
+        const milsEnd = endDate.getTime() + dayMils
 
-        let monthDatas = []
+        const monthDatas = []
         let current;
         // 载入初始周属于上月日子
         for (let i = 1; i < weekStart; i++) {
@@ -84,9 +84,9 @@
             })
         }
 
-        let monthData = []
+        const monthData = []
         for (let i = 0; i < monthDatas.length; i++) {
-            let mi = i % 7;
+            const mi = i % 7;
             if (mi == 0) {
                 monthData.push([])
             }
@@ -114,7 +114,7 @@
     }
 
     function getCellClass(d){
-        let return_data = {'day_cell':true}
+        const return_data = {'day_cell':true}
         const now_year = now_date.value.getFullYear()
         const now_month = now_date.value.getMonth() + 1
         const now_day = now_date.value.getDate()
@@ -181,7 +181,7 @@
     }
 
     const now_date = ref(new Date())
-    let tempDate = new Date()
+    const tempDate = new Date()
     tempDate.setDate(1)
     const show_date = ref(tempDate)
 
@@ -250,7 +250,7 @@
                                 {{ d.day }}
                             </div>
                             <div class="moon">
-                                <div class="moon_mask" v-bind:style="calOffset(d)"></div>
+                                <div class="moon_mask" :style="calOffset(d)"/>
                             </div>
                             <div class="festival">
                                 {{getFestival(d)}}

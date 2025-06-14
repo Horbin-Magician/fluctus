@@ -330,14 +330,4 @@ input:-internal-autofill-previewed,
 input:-internal-autofill-selected {
     transition: background-color 5000s ease-out 0.5s;
 }
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  position: relative;
-  font-weight: normal;
-  text-decoration: none;
-}
 </style>
