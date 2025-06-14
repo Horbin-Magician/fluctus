@@ -27,13 +27,3 @@
   --color-light: var(--yellow);
   --color-light-light: var(--light_yellow);
 }
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  position: relative;
-  font-weight: normal;
-  text-decoration: none;
-}

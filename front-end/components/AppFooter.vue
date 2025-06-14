@@ -28,4 +28,14 @@ footer a{
 footer a:hover{
     color:var(--color-light);
 }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  position: relative;
+  font-weight: normal;
+  text-decoration: none;
+}
 </style>
