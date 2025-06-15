@@ -362,6 +362,7 @@ onMounted(() => {
 
 .cal_h_time {
   cursor: pointer;
+  font-size: 16px;
   height: 34px;
   line-height: 34px;
 }
@@ -390,8 +391,7 @@ onMounted(() => {
 .calendar-grid {
   display: flex;
   flex-direction: column;
-  /* 防止与外边框重叠 */
-  margin: -1px;
+  margin: -1px; /* 防止与外边框重叠 */
 }
 
 .calendar-week {
@@ -471,9 +471,10 @@ onMounted(() => {
   top: 11px;
   width: 15px;
   height: 15px;
-  background-color: #e9e946;
+  background: linear-gradient(135deg, #fff6c8 10%, #ffd54f 60%, #ffb300 100%);
   border-radius: 50%;
-  overflow: clip;
+  overflow: hidden;
+  box-shadow: 0 0 3px rgba(255, 204, 0, 0.4);
 }
 
 .moon_mask {
