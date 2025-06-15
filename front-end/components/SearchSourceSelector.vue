@@ -1,27 +1,13 @@
 <template>
-  <div 
-    class="search-source-container"
-    :class="{ expanded: isExpanded }"
-    tabindex="-1"
-    @focusout="handleFocusOut"
-  >
-    <svg 
-      class="search-icon current-source" 
-      :title="searchSources[currentSource]?.name"
-      @click="toggleExpanded"
-    >
+  <div class="search-source-container" :class="{ expanded: isExpanded }" tabindex="-1" @focusout="handleFocusOut">
+    <svg class="search-icon current-source" :title="searchSources[currentSource]?.name" @click="toggleExpanded">
       <use :xlink:href="`#icon-${currentSource}`" />
     </svg>
-    
+
     <transition name="slide">
       <div v-if="isExpanded" class="source-options">
-        <svg
-          v-for="sourceKey in availableSources"
-          :key="sourceKey"
-          class="search-icon source-option"
-          :title="searchSources[sourceKey]?.name"
-          @click="selectSource(sourceKey)"
-        >
+        <svg v-for="sourceKey in availableSources" :key="sourceKey" class="search-icon source-option"
+          :title="searchSources[sourceKey]?.name" @click="selectSource(sourceKey)">
           <use :xlink:href="`#icon-${sourceKey}`" />
         </svg>
       </div>
@@ -47,7 +33,7 @@ const emit = defineEmits<Emits>()
 
 const isExpanded = ref(false)
 
-const availableSources = computed(() => 
+const availableSources = computed(() =>
   Object.keys(props.searchSources).filter(key => key !== props.currentSource)
 )
 

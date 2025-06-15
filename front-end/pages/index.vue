@@ -4,58 +4,36 @@
     <svg id="homelogo">
       <use xlink:href="#icon-homelogo" />
     </svg>
-    
-    <div 
-      class="search-div" 
-      :style="{ height: searchDivHeight }"
-      tabindex="0" 
-      @keyup.up.prevent="navigateUp"
-      @keyup.down.prevent="navigateDown"
-      @keyup.enter="performSearch"
-      @focusin="searchIsFocused = true"
-      @focusout="searchIsFocused = false"
-    >
+
+    <div class="search-div" :style="{ height: searchDivHeight }" tabindex="0" @keyup.up.prevent="navigateUp"
+      @keyup.down.prevent="navigateDown" @keyup.enter="performSearch" @focusin="searchIsFocused = true"
+      @focusout="searchIsFocused = false">
       <div class="search-input-container">
-        <SearchSourceSelector
-          :current-source="currentSearchSource"
-          :search-sources="searchSources"
-          @change="changeSearchSource"
-        />
-        
-        <input 
-          v-model="searchValue"
-          class="search-input"
-          @keydown="preventArrowKeys"
-        >
-        
-        <n-icon 
-          size="28" 
-          class="search-button" 
-          @mousedown="performSearch"
-        >
+        <SearchSourceSelector :current-source="currentSearchSource" :search-sources="searchSources"
+          @change="changeSearchSource" />
+
+        <input v-model="searchValue" class="search-input" @keydown="preventArrowKeys">
+
+        <n-icon size="28" class="search-button" @mousedown="performSearch">
           <SearchIcon />
         </n-icon>
       </div>
-      
+
       <!-- 搜索建议列表 -->
       <div v-if="sugList.length > 0" class="suggestions-container">
-        <div
-          v-for="(suggestion, index) in sugList"
-          :key="index"
-          :class="['suggestion-item', { selected: selectedSugIndex === index }]"
-          @mouseenter="setSelectedIndex(index)"
-          @click="performSearch"
-        >
+        <div v-for="(suggestion, index) in sugList" :key="index"
+          :class="['suggestion-item', { selected: selectedSugIndex === index }]" @mouseenter="setSelectedIndex(index)"
+          @click="performSearch">
           {{ suggestion.q }}
         </div>
       </div>
-      
+
       <!-- 错误提示 -->
       <div v-if="error" class="error-message">
         {{ error }}
       </div>
     </div>
-    
+
     <div class="overlay" />
   </div>
 </template>
@@ -139,7 +117,7 @@ const preventArrowKeys = (event: KeyboardEvent) => {
   box-shadow: 0 0 5px var(--color-light);
 }
 
-.search-div:focus-within ~ .overlay {
+.search-div:focus-within~.overlay {
   z-index: 100;
   background: rgba(0, 0, 0, 0.3);
 }
@@ -236,14 +214,27 @@ const preventArrowKeys = (event: KeyboardEvent) => {
 }
 
 @keyframes floatImage {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-  100% { transform: translateY(0); }
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 响应式设计 */
@@ -251,16 +242,16 @@ const preventArrowKeys = (event: KeyboardEvent) => {
   .container {
     grid-template-rows: 20vh 80px 60px;
   }
-  
+
   #homelogo {
     height: 80px;
     width: 160px;
   }
-  
+
   .search-input-container {
     width: 300px;
   }
-  
+
   .search-input-container:focus-within {
     width: 350px;
   }
@@ -270,11 +261,11 @@ const preventArrowKeys = (event: KeyboardEvent) => {
   .search-input-container {
     width: 280px;
   }
-  
+
   .search-input-container:focus-within {
     width: 300px;
   }
-  
+
   .suggestion-item {
     font-size: 14px;
   }
