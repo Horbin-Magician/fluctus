@@ -203,6 +203,7 @@ header {
   display: flex;
   justify-content: center;
   height: 50px;
+  position: relative;
 }
 
 .nav .link {
