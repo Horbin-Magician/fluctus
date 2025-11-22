@@ -137,6 +137,16 @@ renderer.code = ({ text, lang }) => {
 </div>`
 }
 
+renderer.heading = ({ text, depth }) => {
+  const id = text
+    .toLowerCase()
+    .replace(/<[^>]+>/g, '') // Remove HTML tags
+    .replace(/[^\w\u4e00-\u9fa5]+/g, '-') // Replace non-word chars (except Chinese) with hyphen
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+  
+  return `<h${depth} id="${id}">${text}</h${depth}>`
+}
+
 marked.use({ renderer })
 
 // 将Markdown转换为HTML

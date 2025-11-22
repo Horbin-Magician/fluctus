@@ -1,26 +1,45 @@
 <template>
-  <div class="article-container">
-    <div v-if="article">
-      <div class="article-header">
-        <h1>{{ article.title }}</h1>
-        <div class="meta">
-          <span>{{ article.date }}</span>
-          <span v-if="article.categories" class="category">{{ article.categories }}</span>
+  <div class="page-wrapper">
+    <div class="article-container">
+      <div v-if="article">
+        <div class="article-header">
+          <h1>{{ article.title }}</h1>
+          <div class="meta">
+            <span>{{ article.date }}</span>
+            <span v-if="article.categories" class="category">{{ article.categories }}</span>
+          </div>
+          <div class="tags" v-if="article.tags && article.tags.length">
+              <span v-for="tag in article.tags" :key="tag" class="tag">#{{ tag }}</span>
+          </div>
         </div>
-        <div class="tags" v-if="article.tags && article.tags.length">
-            <span v-for="tag in article.tags" :key="tag" class="tag">#{{ tag }}</span>
-        </div>
+        <div class="markdown-body" v-html="contentHtml" @click="handleCopy"></div>
       </div>
-      <div class="markdown-body" v-html="contentHtml" @click="handleCopy"></div>
+      <div v-else class="loading">
+        加载中...
+      </div>
     </div>
-    <div v-else class="loading">
-      加载中...
-    </div>
+
+    <aside class="toc-sidebar" v-if="toc.length > 0">
+      <div class="toc-content">
+        <div class="active-marker" :style="markerStyle"></div>
+        <ul>
+          <li v-for="item in toc" :key="item.id" :class="`toc-level-${item.level}`">
+            <a 
+              :href="`#${item.id}`" 
+              :class="{ active: activeHeading === item.id }"
+              @click.prevent="scrollToHeading(item.id)"
+            >
+              {{ item.text }}
+            </a>
+          </li>
+        </ul>
+      </div>
+    </aside>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getArticleBySlug, markdownToHtml } from '@/utils/blogUtils'
 import 'highlight.js/styles/atom-one-dark.css'
@@ -28,6 +47,41 @@ import 'highlight.js/styles/atom-one-dark.css'
 const route = useRoute()
 const article = ref(null)
 const contentHtml = ref('')
+const toc = ref([])
+const activeHeading = ref('')
+const markerStyle = ref({ top: '0px', height: '0px', opacity: 0 })
+
+watch(activeHeading, () => {
+  nextTick(() => {
+    updateMarker()
+  })
+})
+
+const updateMarker = () => {
+  if (!activeHeading.value) return
+  
+  // Find the link element in the TOC
+  // We need to scope this to toc-content to avoid selecting other links if any
+  const container = document.querySelector('.toc-content')
+  if (!container) return
+
+  const link = container.querySelector(`a[href="#${activeHeading.value}"]`)
+  if (link) {
+    // Calculate relative position
+    const containerRect = container.getBoundingClientRect()
+    const linkRect = link.getBoundingClientRect()
+    
+    // Adjust logic if toc-content has padding/relative positioning
+    // Since marker is inside toc-content, we want position relative to it.
+    // Using offsetTop is easier if offsetParent is toc-content
+    
+    markerStyle.value = {
+      top: `${link.offsetTop}px`,
+      height: `${link.offsetHeight}px`,
+      opacity: 1
+    }
+  }
+}
 
 onMounted(async () => {
   const slug = route.params.slug
@@ -36,8 +90,65 @@ onMounted(async () => {
   if (data) {
     article.value = data
     contentHtml.value = await markdownToHtml(data.content)
+    
+    await nextTick()
+    generateToc()
+    setupIntersectionObserver()
   }
 })
+
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect()
+  }
+})
+
+const generateToc = () => {
+  const headings = document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3')
+  toc.value = Array.from(headings).map(h => ({
+    id: h.id,
+    text: h.innerText,
+    level: parseInt(h.tagName.substring(1))
+  }))
+}
+
+const scrollToHeading = (id) => {
+  const element = document.getElementById(id)
+  if (element) {
+    // Add offset for fixed header if exists, or just some padding
+    const offset = 80 
+    const elementPosition = element.getBoundingClientRect().top
+    const offsetPosition = elementPosition + window.pageYOffset - offset
+
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: "smooth"
+    })
+    // Do not set activeHeading immediately; let IntersectionObserver handle it
+    // activeHeading.value = id 
+  }
+}
+
+let observer = null
+const setupIntersectionObserver = () => {
+  const options = {
+    root: null,
+    rootMargin: '-100px 0px -60% 0px', // Adjust these values to trigger activation appropriately
+    threshold: 0.1
+  }
+
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        activeHeading.value = entry.target.id
+      }
+    })
+  }, options)
+
+  document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3').forEach((heading) => {
+    observer.observe(heading)
+  })
+}
 
 const handleCopy = async (event) => {
   const btn = event.target.closest('.copy-code-btn')
@@ -72,15 +183,109 @@ const handleCopy = async (event) => {
 </script>
 
 <style scoped>
-.article-container {
+.page-wrapper {
   max-width: 800px;
-  margin: 80px auto;
+  margin: 0 auto;
+  position: relative;
+}
+
+.article-container {
+  width: 100%;
+  margin: 30px 0;
   padding: 40px;
   background: var(--color-background);
   min-height: 100vh;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.05);
 }
+
+.toc-sidebar {
+  position: absolute;
+  left: 100%;
+  top: 80px; /* Align with article margin-top */
+  bottom: 0;
+  width: 250px;
+  margin-left: 20px;
+  display: none;
+}
+
+@media (min-width: 1350px) {
+  .toc-sidebar {
+    display: block;
+  }
+}
+
+.toc-content {
+  position: sticky;
+  top: 100px;
+  /* background: var(--color-background); Remove bg so marker can be seen if behind? Or put marker inside */
+  /* Actually keep bg but ensure marker is visible. Relative pos needed for marker */
+  background: var(--color-background);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  position: sticky; /* Repeated in search block, keeping it safe */
+}
+
+.active-marker {
+  position: absolute;
+  left: 0;
+  width: 4px;
+  background-color: var(--color-primary, #007bff);
+  transition: top 0.3s ease, height 0.3s ease;
+  border-radius: 0 2px 2px 0;
+}
+
+.toc-content h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.1em;
+  color: var(--color-text);
+  font-weight: 600;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.toc-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-content li {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.toc-content a {
+  text-decoration: none;
+  color: #666;
+  font-size: 0.9em;
+  transition: all 0.2s;
+  display: block;
+  padding-left: 15px; /* Increased padding since we removed border */
+  position: relative;
+}
+
+.toc-content a:hover {
+  color: var(--color-primary, #007bff);
+  transform: translateX(5px); /* Hover move animation */
+}
+
+.toc-content a.active {
+  color: var(--color-primary, #007bff);
+  font-weight: 500;
+}
+
+/* Indentation for nested levels */
+.toc-level-1 { padding-left: 0; }
+.toc-level-2 { padding-left: 0; }
+.toc-level-3 { padding-left: 15px; }
+.toc-level-4 { padding-left: 30px; }
+.toc-level-5 { padding-left: 45px; }
+.toc-level-6 { padding-left: 60px; }
 
 .article-header {
   margin-bottom: 40px;
