@@ -155,10 +155,17 @@ function handleAppSelect(key) {
 
 <style scoped>
 header {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
   height: 50px;
-  margin: 0 auto;
+  border-radius: 20px;
   display: flex;
   justify-content: space-between;
+  background-color: var(--color-background);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes shake {

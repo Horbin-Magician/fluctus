@@ -14,6 +14,7 @@
 
 <style scoped>
 .content {
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 30px);
+  padding-top: 50px;
 }
 </style>
