@@ -11,7 +11,7 @@
             <span v-for="tag in article.tags" :key="tag" class="tag">#{{ tag }}</span>
         </div>
       </div>
-      <div class="markdown-body" v-html="contentHtml"></div>
+      <div class="markdown-body" v-html="contentHtml" @click="handleCopy"></div>
     </div>
     <div v-else class="loading">
       加载中...
@@ -23,6 +23,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getArticleBySlug, markdownToHtml } from '@/utils/blogUtils'
+import 'highlight.js/styles/atom-one-dark.css'
 
 const route = useRoute()
 const article = ref(null)
@@ -37,6 +38,37 @@ onMounted(async () => {
     contentHtml.value = await markdownToHtml(data.content)
   }
 })
+
+const handleCopy = async (event) => {
+  const btn = event.target.closest('.copy-code-btn')
+  if (!btn) return
+  
+  const wrapper = btn.closest('.code-block-wrapper')
+  if (!wrapper) return
+  
+  const codeBlock = wrapper.querySelector('code')
+  if (!codeBlock) return
+  
+  const text = codeBlock.innerText
+  
+  try {
+    await navigator.clipboard.writeText(text)
+    
+    // Temporary success state
+    btn.classList.add('copied')
+    const originalHtml = btn.innerHTML
+    
+    // Simple checkmark icon
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+    
+    setTimeout(() => {
+      btn.classList.remove('copied')
+      btn.innerHTML = originalHtml
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy:', err)
+  }
+}
 </script>
 
 <style scoped>
@@ -133,25 +165,88 @@ onMounted(async () => {
   font-family: monospace;
 }
 
-:deep(.markdown-body pre) {
-  padding: 16px;
-  overflow: auto;
-  font-size: 85%;
-  line-height: 1.45;
-  background-color: #f6f8fa;
-  border-radius: 6px;
-  margin-bottom: 20px;
+/* Code Block Container Styles */
+:deep(.code-block-wrapper) {
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #282c34; /* Match atom-one-dark bg */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: #dfe2e5;
 }
-/* Dark mode adjustments for code blocks if needed, simplified here */
-@media (prefers-color-scheme: dark) {
-    :deep(.markdown-body pre) {
-        background-color: #2d2d2d;
-    }
+
+:deep(.code-header) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #21252b;
+  border-bottom: 1px solid #333;
+  font-family: monospace;
+}
+
+:deep(.code-lang) {
+  font-size: 0.85em;
+  color: #abb2bf;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+:deep(.copy-code-btn) {
+  background: transparent;
+  border: none;
+  color: #abb2bf;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.copy-code-btn:hover) {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+:deep(.copy-code-btn.copied) {
+  color: #98c379; /* Green for success */
+}
+
+:deep(.markdown-body pre) {
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  font-size: 0.9em;
+  line-height: 1.5;
+  background-color: transparent; /* Let wrapper handle bg */
+  border-radius: 0 0 8px 8px;
 }
 
 :deep(.markdown-body pre code) {
   background-color: transparent;
   padding: 0;
+  color: inherit;
+  font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+/* Scrollbar for code blocks */
+:deep(.markdown-body pre::-webkit-scrollbar) {
+  height: 8px;
+}
+
+:deep(.markdown-body pre::-webkit-scrollbar-track) {
+  background: #21252b;
+}
+
+:deep(.markdown-body pre::-webkit-scrollbar-thumb) {
+  background: #4b5363;
+  border-radius: 4px;
+}
+
+:deep(.markdown-body pre::-webkit-scrollbar-thumb:hover) {
+  background: #5c6579;
 }
 
 :deep(.markdown-body blockquote) {

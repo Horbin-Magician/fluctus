@@ -1,6 +1,6 @@
 <!-- 页头 Header -->
 <template>
-  <header>
+  <header :class="{ 'header-hidden': isHeaderHidden }">
     <div class="logo">
       <svg class="icon" aria-hidden="true" @click="onLogoClicked">
         <use xlink:href="#icon-logo" />
@@ -30,7 +30,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { NModal, useMessage } from 'naive-ui'
 import '@/assets/icons/iconfont'
 import { userlogin, initUser, checkLogin, userlogout, addUpdateFun } from '@/utils/userUtils';
@@ -59,6 +59,20 @@ const showLoginModal = ref(false)
 const showLogoutModal = ref(false)
 const user_name = ref('')
 const user_key = ref('')
+const isHeaderHidden = ref(false)
+
+function handleScroll() {
+  isHeaderHidden.value = window.scrollY > 0
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+  handleScroll()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
 
 addUpdateFun(() => {
   if (checkLogin()) {
@@ -99,7 +113,7 @@ header {
   position: fixed;
   top: 10px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(0);
   width: 600px;
   height: 50px;
   border-radius: 20px;
@@ -108,6 +122,11 @@ header {
   background-color: var(--color-background);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 2;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+header.header-hidden {
+  transform: translateX(-50%) translateY(-80px);
 }
 
 @keyframes shake {

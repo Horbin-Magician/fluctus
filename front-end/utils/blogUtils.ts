@@ -1,4 +1,5 @@
 import { marked } from 'marked'
+import hljs from 'highlight.js'
 
 export interface ArticleMeta {
   title: string
@@ -113,6 +114,30 @@ export function getArticleBySlug(slug: string): Article | null {
     return null
   }
 }
+
+// Configure marked with highlight.js and custom renderer
+const renderer = new marked.Renderer()
+
+renderer.code = ({ text, lang }) => {
+  const language = hljs.getLanguage(lang || '') ? lang : 'plaintext'
+  const highlighted = hljs.highlight(text, { language: language || 'plaintext' }).value
+  
+  return `
+<div class="code-block-wrapper">
+  <div class="code-header">
+    <span class="code-lang">${language || 'text'}</span>
+    <button class="copy-code-btn" aria-label="Copy code">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    </button>
+  </div>
+  <pre><code class="hljs language-${language}">${highlighted}</code></pre>
+</div>`
+}
+
+marked.use({ renderer })
 
 // 将Markdown转换为HTML
 export async function markdownToHtml(markdown: string): Promise<string> {
