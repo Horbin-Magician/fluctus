@@ -133,6 +133,7 @@ header {
   width: 50px;
   height: 50px;
   color: var(--color-light);
+  fill: currentColor;
 }
 
 .logo:hover {
@@ -144,6 +145,7 @@ header {
 .left-bar {
   display: flex;
   align-items: center;
+  margin-right: 20px;
 }
 
 .nav {
