@@ -44,7 +44,6 @@ import '../assets/icons/iconfont'
 
 <style scoped>
 .about-container {
-  min-height: calc(100vh - 80px);
   display: flex;
   align-items: center;
   justify-content: center;
