@@ -6,16 +6,13 @@ import {
   CloudOutline as PanIcon,
   BookOutline as BlogIcon,
   Apps as AppsIcon,
-  Sunny as SunIcon,
-  Moon as MoonIcon,
 } from "@vicons/ionicons5";
 import '@/assets/icons/iconfont'
 import { userlogin, initUser, checkLogin, userlogout, addUpdateFun } from '@/utils/userUtils';
-import storageUtils from '@/utils/storageUtils';
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
 const message = useMessage()
-const docBody = document.body
 
 const router_items = reactive({
   '首页': { path: '/', shown: true },
@@ -34,7 +31,6 @@ const nav_track_left = computed(() => {
 
 const showLoginModal = ref(false)
 const showLogoutModal = ref(false)
-const theme = ref(docBody.getAttribute('theme'))
 const user_name = ref('')
 const user_key = ref('')
 
@@ -63,20 +59,6 @@ addUpdateFun(() => {
 initUser().then(data => {
   if (data && data.status == 0) message.success(data.message)
 })
-
-// 初始化theme信息
-const theme_storaged = storageUtils.getTheme()
-if (theme_storaged != null && theme_storaged != theme.value) {
-  docBody.setAttribute('theme', theme_storaged)
-  theme.value = theme_storaged
-}
-
-// 定义函数
-const switchDocumentTheme = () => {
-  theme.value = (theme.value == "light") ? "dark" : "light"
-  docBody.setAttribute('theme', theme.value)
-  storageUtils.setTheme(theme.value)
-}
 
 function onLogin() {
   userlogin(user_name.value, user_key.value).then(data => {
@@ -121,16 +103,7 @@ function handleAppSelect(key) {
         </div>
         <div v-if="!nav_track_left.startsWith('-')" class="nav-track" />
       </div>
-      <div class="theme" @click="switchDocumentTheme">
-        <div class="icon">
-          <n-icon v-if="theme == 'light'" size="26">
-            <SunIcon />
-          </n-icon>
-          <n-icon v-if="theme == 'dark'" size="26">
-            <MoonIcon />
-          </n-icon>
-        </div>
-      </div>
+      <ThemeToggle />
       <div class="app">
         <n-dropdown trigger="hover" :options="app_options" :show-arrow="true" @select="handleAppSelect">
           <n-icon size="26">
@@ -248,21 +221,6 @@ header {
 
 .app:hover {
   cursor: pointer;
-  color: var(--color-light);
-  filter: drop-shadow(0px 0px 1px var(--color-light));
-}
-
-.theme {
-  width: 26px;
-  height: 26px;
-  margin-left: 10px;
-  transition: transform 0.2s ease;
-  transform-origin: center center;
-}
-
-.theme:hover {
-  cursor: pointer;
-  transform: rotate(180deg);
   color: var(--color-light);
   filter: drop-shadow(0px 0px 1px var(--color-light));
 }
