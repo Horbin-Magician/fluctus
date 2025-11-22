@@ -326,7 +326,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px;
-  background: linear-gradient(180deg, var(--color-light-light) 0%, transparent 100%);
+  background: var(--color-light-light);
   border-bottom: 1px solid var(--color-text-sub-sub);
 }
 
@@ -342,7 +342,7 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   background: transparent;
-  border: 1px solid var(--color-text-sub-sub);
+  border: 1px solid var(--color-text-sub);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -362,7 +362,7 @@ onMounted(() => {
 
 .cal_h_time {
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   height: 34px;
   line-height: 34px;
 }
