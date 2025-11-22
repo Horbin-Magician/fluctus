@@ -7,6 +7,7 @@ export interface ArticleMeta {
   categories?: string
   tags?: string[]
   slug: string
+  excerpt?: string
 }
 
 export interface Article extends ArticleMeta {
@@ -61,15 +62,27 @@ export function getAllArticles(): ArticleMeta[] {
   try {
     const articles = Object.keys(articleFiles).map((filePath) => {
       const fileContent = articleFiles[filePath] as string
-      const { data } = parseFrontMatter(fileContent)
+      const { data, content } = parseFrontMatter(fileContent)
       const slug = filePath.split('/').pop()?.replace(/\.md$/, '') || ''
+
+      // Extract excerpt
+      const excerptMatch = content.match(/^([\s\S]*?)<!-- more -->/)
+      // If no <!-- more -->, take first 200 chars
+      let excerptRaw = excerptMatch 
+        ? excerptMatch[1].trim() 
+        : content.substring(0, 200).trim() + '...'
       
+      // Render excerpt to HTML
+      // marked.parse is synchronous by default unless async: true is set
+      const excerpt = marked.parse(excerptRaw) as string
+
       return {
         slug,
         title: data.title || slug,
         date: data.date || data.data || '',
         categories: data.categories,
-        tags: data.tags || []
+        tags: data.tags || [],
+        excerpt
       }
     })
 

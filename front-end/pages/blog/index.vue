@@ -7,6 +7,7 @@
           <span class="date">{{ article.date }}</span>
           <span v-if="article.categories" class="category">{{ article.categories }}</span>
         </div>
+        <div class="excerpt markdown-body" v-if="article.excerpt" v-html="article.excerpt"></div>
         <div class="tags" v-if="article.tags && article.tags.length">
           <span v-for="tag in article.tags" :key="tag" class="tag">#{{ tag }}</span>
         </div>
@@ -19,6 +20,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getAllArticles } from '@/utils/blogUtils'
+import 'highlight.js/styles/atom-one-dark.css'
 
 const router = useRouter()
 const articles = ref([])
@@ -76,6 +78,26 @@ h1 {
   color: #666;
   font-size: 0.9em;
   margin-bottom: 10px;
+}
+
+.excerpt {
+  color: #555;
+  font-size: 1em;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reset markdown paragraph margins inside excerpt to avoid huge gaps */
+.excerpt :deep(p) {
+  margin: 0 0 10px 0;
+}
+.excerpt :deep(p:last-child) {
+  margin-bottom: 0;
 }
 
 .category {
