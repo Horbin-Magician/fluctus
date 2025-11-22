@@ -106,6 +106,7 @@ header {
   justify-content: space-between;
   background-color: var(--color-background);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 2;
 }
 
 @keyframes shake {
