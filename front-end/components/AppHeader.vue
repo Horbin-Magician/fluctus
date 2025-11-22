@@ -1,12 +1,37 @@
 <!-- 页头 Header -->
+<template>
+  <header>
+    <div class="logo">
+      <svg class="icon" aria-hidden="true" @click="onLogoClicked">
+        <use xlink:href="#icon-logo" />
+      </svg>
+    </div>
+    <div class="left-bar">
+      <div class="nav">
+        <div v-for="(value, key) in router_items" :key="key">
+          <NuxtLink v-if="value.shown" :to="value.path" class="link"> {{ key }} </NuxtLink>
+        </div>
+        <div v-if="!nav_track_left.startsWith('-')" class="nav-track" />
+      </div>
+      <ThemeToggle />
+    </div>
+  </header>
+  <n-modal v-model:show="showLoginModal" transform-origin="center">
+    <div class="login">
+      <form @keyup.enter="onLogin">
+        <input id='name' v-model='user_name' type="text" name='name' placeholder="账号">
+        <input id='pwd' v-model='user_key' type="password" name='pwd' placeholder="密码">
+        <a @click="onLogin"> 登录 </a>
+      </form>
+    </div>
+  </n-modal>
+  <n-modal v-model:show="showLogoutModal" preset="dialog" :closable="false" type="warning" title="注销"
+    content="是否注销当前登陆？" positive-text="确认" negative-text="取消" @positive-click="logout" />
+</template>
+
 <script setup>
-import { ref, h, reactive } from 'vue'
-import { NModal, useMessage, NDropdown, NIcon } from 'naive-ui'
-import {
-  CloudOutline as PanIcon,
-  BookOutline as BlogIcon,
-  Apps as AppsIcon,
-} from "@vicons/ionicons5";
+import { ref, reactive } from 'vue'
+import { NModal, useMessage } from 'naive-ui'
 import '@/assets/icons/iconfont'
 import { userlogin, initUser, checkLogin, userlogout, addUpdateFun } from '@/utils/userUtils';
 import ThemeToggle from '@/components/ThemeToggle.vue'
@@ -33,19 +58,6 @@ const showLoginModal = ref(false)
 const showLogoutModal = ref(false)
 const user_name = ref('')
 const user_key = ref('')
-
-function renderIcon(icon) {
-  return () => {
-    return h(NIcon, null, {
-      default: () => h(icon)
-    });
-  };
-}
-
-const app_options = [
-  { label: '网盘', key: 'pan', icon: renderIcon(PanIcon) },
-  { label: '博客', key: 'blog', icon: renderIcon(BlogIcon) }
-]
 
 addUpdateFun(() => {
   if (checkLogin()) {
@@ -79,52 +91,7 @@ function logout() {
   userlogout()
   message.success("注销成功！")
 }
-
-function handleAppSelect(key) {
-  if (key == "pan") {
-    window.location.href = 'https://pan.fluctus.cc/'
-  } else if (key == "blog") {
-    window.location.href = 'https://blog.fluctus.cc/'
-  }
-}
 </script>
-
-<template>
-  <header>
-    <div class="logo">
-      <svg class="icon" aria-hidden="true" @click="onLogoClicked">
-        <use xlink:href="#icon-logo" />
-      </svg>
-    </div>
-    <div class="left-bar">
-      <div class="nav">
-        <div v-for="(value, key) in router_items" :key="key">
-          <NuxtLink v-if="value.shown" :to="value.path" class="link"> {{ key }} </NuxtLink>
-        </div>
-        <div v-if="!nav_track_left.startsWith('-')" class="nav-track" />
-      </div>
-      <ThemeToggle />
-      <div class="app">
-        <n-dropdown trigger="hover" :options="app_options" :show-arrow="true" @select="handleAppSelect">
-          <n-icon size="26">
-            <AppsIcon />
-          </n-icon>
-        </n-dropdown>
-      </div>
-    </div>
-  </header>
-  <n-modal v-model:show="showLoginModal" transform-origin="center">
-    <div class="login">
-      <form @keyup.enter="onLogin">
-        <input id='name' v-model='user_name' type="text" name='name' placeholder="账号">
-        <input id='pwd' v-model='user_key' type="password" name='pwd' placeholder="密码">
-        <a @click="onLogin"> 登录 </a>
-      </form>
-    </div>
-  </n-modal>
-  <n-modal v-model:show="showLogoutModal" preset="dialog" :closable="false" type="warning" title="注销"
-    content="是否注销当前登陆？" positive-text="确认" negative-text="取消" @positive-click="logout" />
-</template>
 
 <style scoped>
 header {
@@ -210,32 +177,6 @@ header {
   left: v-bind('nav_track_left');
   bottom: 0px;
   transition: .3s;
-}
-
-.app {
-  width: 26px;
-  height: 26px;
-  margin-left: 20px;
-  margin-right: 20px;
-}
-
-.app:hover {
-  cursor: pointer;
-  color: var(--color-light);
-  filter: drop-shadow(0px 0px 1px var(--color-light));
-}
-
-.icon {
-  width: 26px;
-  height: 26px;
-  overflow: hidden;
-  fill: currentColor;
-}
-
-.logo-login svg {
-  height: 60px;
-  width: 60px;
-  color: var(--color-light);
 }
 
 .login {
