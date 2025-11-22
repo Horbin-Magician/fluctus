@@ -28,8 +28,8 @@ jobs:
           ARGS: "-avz --delete"
           SOURCE: "front-end/dist/"
           REMOTE_HOST: "fluctus.cc"
-          REMOTE_USER: "root"
-          TARGET: "/root/Webs/Fluctus/"
+          REMOTE_USER: "horbin"
+          TARGET: "/home/horbin/Webs/Fluctus/"
       - name: Deploy back-end to aliyun
         uses: easingthemes/ssh-deploy@v3
         with:
@@ -37,5 +37,5 @@ jobs:
           ARGS: "-avz"
           SOURCE: "back-end/"
           REMOTE_HOST: "fluctus.cc"
-          REMOTE_USER: "root"
-          TARGET: "/root/Webs/Fluctus-back/"
+          REMOTE_USER: "horbin"
+          TARGET: "/home/horbin/Webs/Fluctus-back/"
