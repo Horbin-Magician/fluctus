@@ -34,6 +34,7 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { NModal, useMessage } from 'naive-ui'
 import '@/assets/icons/iconfont'
 import { userlogin, checkLogin, userlogout, addUpdateFun } from '@/utils/userUtils';
+import storageUtils from '@/utils/storageUtils';
 import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
@@ -41,7 +42,7 @@ const message = useMessage()
 
 const router_items = reactive({
   '首页': { path: '/', shown: true },
-  '日历': { path: '/calendar', shown: false },
+  '日历': { path: '/calendar', shown: !!storageUtils.getUser().username },
   '博客': { path: '/blog', shown: true },
   '关于': { path: '/about', shown: true }
 })
