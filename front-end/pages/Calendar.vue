@@ -14,6 +14,13 @@ const show_date = ref(new Date())
 const monthData = ref([])
 const selectedDate = ref(null)
 
+// 日期选择器状态
+const isDatePickerOpen = ref(false)
+const pickerMode = ref('year') // 'year' | 'month'
+const tempYear = ref(new Date().getFullYear())
+const tempMonth = ref(new Date().getMonth())
+const yearRangeStart = ref(new Date().getFullYear() - 4) // 年份选择器的起始年份
+
 // 星期标题
 const weeks = ["一", "二", "三", "四", "五", "六", "日"]
 
@@ -22,6 +29,41 @@ function navigateYear(direction) {
   const newDate = new Date(show_date.value)
   newDate.setFullYear(newDate.getFullYear() + direction)
   show_date.value = newDate
+}
+
+function openYearPicker() {
+  pickerMode.value = 'year'
+  tempYear.value = show_date.value.getFullYear()
+  yearRangeStart.value = tempYear.value - 4
+  isDatePickerOpen.value = true
+}
+
+function openMonthPicker() {
+  pickerMode.value = 'month'
+  tempMonth.value = show_date.value.getMonth()
+  isDatePickerOpen.value = true
+}
+
+function closeDatePicker() {
+  isDatePickerOpen.value = false
+}
+
+function selectYear(year) {
+  const newDate = new Date(show_date.value)
+  newDate.setFullYear(year)
+  show_date.value = newDate
+  closeDatePicker()
+}
+
+function selectMonth(month) {
+  const newDate = new Date(show_date.value)
+  newDate.setMonth(month)
+  show_date.value = newDate
+  closeDatePicker()
+}
+
+function changeYearRange(delta) {
+  yearRangeStart.value += delta * 12
 }
 
 function navigateMonth(direction) {
@@ -199,8 +241,14 @@ onMounted(() => {
       <!-- 头部 -->
       <header class="header">
         <div class="header-left">
-          <span class="year-text">{{ show_date.getFullYear() }}</span>
-          <span class="month-text">{{ show_date.getMonth() + 1 }}月</span>
+          <div class="date-btn" @click="openYearPicker" title="选择年份">
+            <span class="year-text">{{ show_date.getFullYear() }}</span>
+            <svg class="edit-icon" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+          <div class="date-btn" @click="openMonthPicker" title="选择月份">
+            <span class="month-text">{{ show_date.getMonth() + 1 }}月</span>
+            <svg class="edit-icon" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
         </div>
         
         <div class="header-controls">
@@ -254,6 +302,56 @@ onMounted(() => {
           </div>
         </div>
       </div>
+
+      <!-- Date Picker Modal -->
+      <div v-if="isDatePickerOpen" class="date-picker-modal" @click.self="closeDatePicker">
+        <div class="date-picker-content">
+          <div class="picker-header">{{ pickerMode === 'year' ? '选择年份' : '选择月份' }}</div>
+          
+          <div class="picker-body">
+            <!-- Year Picker -->
+            <div v-if="pickerMode === 'year'" class="year-picker-container">
+              <div class="year-nav">
+                <button class="icon-btn small" @click="changeYearRange(-1)">
+                   <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                </button>
+                <span class="range-text">{{ yearRangeStart }} - {{ yearRangeStart + 11 }}</span>
+                <button class="icon-btn small" @click="changeYearRange(1)">
+                   <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                </button>
+              </div>
+              <div class="year-grid">
+                <div
+                  v-for="offset in 12"
+                  :key="offset"
+                  class="year-item"
+                  :class="{ active: (yearRangeStart + offset - 1) === tempYear }"
+                  @click="selectYear(yearRangeStart + offset - 1)"
+                >
+                  {{ yearRangeStart + offset - 1 }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Month Picker -->
+            <div v-else class="month-selector">
+              <div
+                v-for="m in 12"
+                :key="m"
+                class="month-item"
+                :class="{ active: tempMonth === m - 1 }"
+                @click="selectMonth(m - 1)"
+              >
+                {{ m }}月
+              </div>
+            </div>
+          </div>
+          
+          <div class="picker-footer">
+            <button class="btn btn-cancel" @click="closeDatePicker">取消</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -275,6 +373,7 @@ onMounted(() => {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
   padding: 24px;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 /* Header */
@@ -288,8 +387,35 @@ onMounted(() => {
 
 .header-left {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 4px;
+}
+
+.date-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.date-btn:hover {
+  background: var(--color-background-soft);
+}
+
+.edit-icon {
+  width: 16px;
+  height: 16px;
+  fill: var(--color-text-sub);
+  opacity: 0;
+  transform: translateY(1px);
+  transition: all 0.2s;
+}
+
+.date-btn:hover .edit-icon {
+  opacity: 0.5;
 }
 
 .year-text {
@@ -374,13 +500,15 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-soft);
 }
 
 .day-cell:hover {
-  background: var(--color-background-soft);
+  background: var(--color-background);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border-color: var(--color-primary);
 }
 
 .day-cell--other-month {
@@ -501,5 +629,156 @@ onMounted(() => {
   .year-text, .month-text {
     font-size: 24px;
   }
+}
+
+/* Date Picker Modal */
+.date-picker-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  border-radius: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.dark-mode .date-picker-modal {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.date-picker-content {
+  background: var(--color-background);
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  width: 320px;
+  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid var(--color-border);
+}
+
+.picker-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+/* Year Picker Styles */
+.year-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  background: var(--color-background-soft);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.range-text {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.year-item {
+  padding: 10px 0;
+  text-align: center;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-sub);
+  transition: all 0.2s;
+  background: var(--color-background-soft);
+}
+
+.year-item:hover {
+  background: var(--color-light-light);
+  color: var(--color-primary);
+}
+
+.year-item.active {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.month-selector {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.month-item {
+  padding: 10px 0;
+  text-align: center;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-sub);
+  transition: all 0.2s;
+  background: var(--color-background-soft);
+}
+
+.month-item:hover {
+  background: var(--color-light-light);
+  color: var(--color-primary);
+}
+
+.month-item.active {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.picker-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.btn {
+  padding: 8px 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background: transparent;
+  color: var(--color-text-sub);
+}
+
+.btn-cancel:hover {
+  background: var(--color-background-soft);
+  color: var(--color-text);
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 </style>

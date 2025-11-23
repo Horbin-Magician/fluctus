@@ -8,24 +8,34 @@
   --light_sky_blue: #45a2fa87;
   --yellow: rgb(243, 240, 86);
   --light_yellow: rgb(243, 240, 86, 0.553);
+  --true_white: #ffffff;
+  --soft_dark: #2c2c2c;
 }
 
 :root [theme='light'] {
   --color-background: var(--white);
+  --color-background-soft: var(--true_white);
   --color-text: var(--black);
   --color-text-sub: var(--dark);
   --color-text-sub-sub: var(--grey);
   --color-light: var(--sky_blue);
   --color-light-light: var(--light_sky_blue);
+  --color-primary: var(--sky_blue);
+  --color-primary-rgb: 69, 163, 250;
+  --color-border: #e0e0e0;
 }
 
 :root [theme='dark'] {
   --color-background: var(--black);
+  --color-background-soft: var(--soft_dark);
   --color-text: var(--white);
   --color-text-sub: var(--grey);
   --color-text-sub-sub: var(--dark);
   --color-light: var(--yellow);
   --color-light-light: var(--light_yellow);
+  --color-primary: var(--yellow);
+  --color-primary-rgb: 243, 240, 86;
+  --color-border: #333333;
 }
 
 *,
