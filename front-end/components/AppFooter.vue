@@ -10,7 +10,7 @@
       鄂公网安备 42011102004461号
     </a>
     <a href='https://beian.miit.gov.cn'> 赣ICP备2021004310号-1 </a>
-    <a> ©2021 Clouders </a>
+    <a href='https://github.com/Horbin-Magician/fluctus'> ©2021 Clouders </a>
   </footer>
 </template>
 
