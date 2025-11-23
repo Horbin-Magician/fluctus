@@ -132,61 +132,45 @@ function getMoonPhaseOffset(d) {
   return { left: offset + "px", bottom: Math.abs(offset) + "px" }
 }
 
-// 获取节日信息
-function getFestivalInfo(dayInfo) {
+// 获取日历显示信息（合并农历、节日、节气）
+function getDayDisplayInfo(dayInfo) {
   const lunarInfo = calendar.solar2lunar(dayInfo.fullYear, dayInfo.month, dayInfo.day)
-  const festivals = []
   
-  // 阳历节日
-  // 重点节日：'1-1': '元旦节', '2-14': '情人节', '3-8': '妇女节', '5-1': '劳动节', '10-1': '国庆节', '12-25': '圣诞节', '12-24': '平安夜',
-  if (lunarInfo.festival) {
-    festivals.push({ name: lunarInfo.festival, type: 'solar' })
-  }
-  
-  // 农历节日
-  // 重点节日：'1-1': '春节', '1-15': '元宵节', '5-5': '端午节', '7-7': '七夕节', '8-15': '中秋节', '12-30': '除夕',
-  if (lunarInfo.lunarFestival) {
-    festivals.push({ name: lunarInfo.lunarFestival, type: 'lunar' })
-  }
-  
-  // 24节气
-  if (lunarInfo.isTerm && lunarInfo.Term) {
-    festivals.push({ name: lunarInfo.Term, type: 'term' })
-  }
-  
-  // 个人节日（从原代码中提取）
+  // 个人节日
   const personalFestivals_solar = {
-    '1-20': '小小槟阳历生日',
-    '4-15': '小小语阳历生日',
-    '9-24': '相恋纪念日',
+    '1-20': '槟·生',
+    '4-15': '语·生',
+    '9-24': '相恋',
   }
-
   const personalFestivals_lunar = {
-    '2-29': '小小语农历生日',
-    '12-14': '小小槟农历生日'
+    '2-29': '语·农生',
+    '12-14': '槟·农生'
   }
   
   const solarKey = `${dayInfo.month}-${dayInfo.day}`
   const lunarKey = `${lunarInfo.lMonth}-${lunarInfo.lDay}`
-
+  
+  // 优先级：个人节日 > 农历节日 > 阳历节日 > 节气 > 农历日
   if (personalFestivals_solar[solarKey]) {
-    festivals.push({ name: personalFestivals_solar[solarKey], type: 'personal' })
+    return { text: personalFestivals_solar[solarKey], type: 'personal' }
+  }
+  if (personalFestivals_lunar[lunarKey]) {
+    return { text: personalFestivals_lunar[lunarKey], type: 'personal' }
   }
   
-  if (personalFestivals_lunar[lunarKey]) {
-    festivals.push({ name: personalFestivals_lunar[lunarKey], type: 'personal' })
+  if (lunarInfo.lunarFestival) {
+    return { text: lunarInfo.lunarFestival, type: 'lunar-festival' }
   }
-
-  return festivals
-}
-
-// 获取农历信息
-function getLunarInfo(dayInfo) {
-  const lunarInfo = calendar.solar2lunar(dayInfo.fullYear, dayInfo.month, dayInfo.day)
-  return {
-    day: lunarInfo.IDayCn,
-    month: lunarInfo.IMonthCn
+  
+  if (lunarInfo.festival) {
+    return { text: lunarInfo.festival, type: 'solar-festival' }
   }
+  
+  if (lunarInfo.isTerm && lunarInfo.Term) {
+    return { text: lunarInfo.Term, type: 'term' }
+  }
+  
+  return { text: lunarInfo.IDayCn, type: 'lunar' }
 }
 
 // 点击日期
@@ -211,76 +195,60 @@ onMounted(() => {
 
 <template>
   <div class="container">
-    <!-- 日历主体 -->
-    <div class="calendar">
-      <!-- 日历头部 -->
-      <div class="calendar-header">
-        <div class="nav-buttons">
-          <button class="nav-btn" title="上一年" @click="navigateYear(-1)">
-            <svg viewBox="0 0 24 24" width="16" height="16">
-              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" transform="translate(4,0)"/>
-            </svg>
+    <div class="calendar-card">
+      <!-- 头部 -->
+      <header class="header">
+        <div class="header-left">
+          <span class="year-text">{{ show_date.getFullYear() }}</span>
+          <span class="month-text">{{ show_date.getMonth() + 1 }}月</span>
+        </div>
+        
+        <div class="header-controls">
+          <button class="icon-btn" @click="navigateMonth(-1)" title="上个月">
+            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
           </button>
-          <button class="nav-btn" title="上个月" @click="navigateMonth(-1)">
-            <svg viewBox="0 0 24 24" width="16" height="16">
-              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-            </svg>
+          <button class="icon-btn" @click="show_date = new Date()" title="今天">
+            <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2.9.9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+          </button>
+          <button class="icon-btn" @click="navigateMonth(1)" title="下个月">
+            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
           </button>
         </div>
+      </header>
 
-        <div>
-          <span class="cal_h_time">{{ show_date.getFullYear() }} 年 </span>
-          <span class="cal_h_time">{{ show_date.getMonth() + 1 }} 月</span>
-        </div>
-
-        <div class="nav-buttons">
-          <button class="nav-btn" title="下个月" @click="navigateMonth(1)">
-            <svg viewBox="0 0 24 24" width="16" height="16">
-              <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
-            </svg>
-          </button>
-          <button class="nav-btn" title="下一年" @click="navigateYear(1)">
-            <svg viewBox="0 0 24 24" width="16" height="16">
-              <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
-              <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z" transform="translate(-4,0)"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- 星期标题 -->
-      <div class="weekdays">
-        <div v-for="week in weeks" :key="week" class="weekday"> {{ week }} </div>
+      <!-- 星期 -->
+      <div class="weekdays-row">
+        <span v-for="week in weeks" :key="week" class="weekday-cell">{{ week }}</span>
       </div>
 
       <!-- 日期网格 -->
-      <div class="calendar-grid">
-        <div v-for="(week, weekIndex) in monthData" :key="weekIndex" class="calendar-week">
+      <div class="days-grid">
+        <div 
+          v-for="(week, i) in monthData" 
+          :key="i"
+          class="week-row"
+        >
           <div 
             v-for="dayInfo in week" 
             :key="`${dayInfo.fullYear}-${dayInfo.month}-${dayInfo.day}`"
             :class="getCellClass(dayInfo)"
             @click="onDateClick(dayInfo)"
           >
-            <div class="day-info">
-              <div class="day-number">{{ dayInfo.day }}</div>
-              <div class="lunar-info">{{ getLunarInfo(dayInfo).day }}</div> <!-- 农历信息 -->
-            </div>
-            
-            <!-- 月相 -->
-            <div class="moon">
-              <div class="moon_mask" :style="getMoonPhaseOffset(dayInfo)" />
-            </div>
-            
-            <!-- 节日信息 -->
-            <div class="festivals">
-              <div 
-                v-for="festival in getFestivalInfo(dayInfo)" 
-                :key="festival.name"
-                :class="['festival', `festival--${festival.type}`]"
-              >
-                {{ festival.name }}
+            <div class="day-content">
+              <div class="day-top">
+                <span class="day-num">{{ dayInfo.day }}</span>
+                <div class="moon-phase" title="月相">
+                   <div class="moon_mask" :style="getMoonPhaseOffset(dayInfo)" />
+                </div>
+              </div>
+              
+              <div class="day-bottom">
+                <span 
+                  class="lunar-text"
+                  :class="`type-${getDayDisplayInfo(dayInfo).type}`"
+                >
+                  {{ getDayDisplayInfo(dayInfo).text }}
+                </span>
               </div>
             </div>
           </div>
@@ -291,316 +259,247 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 主容器 */
 .container {
-  height: calc(100vh - 80px);
+  min-height: calc(100vh - 30px);
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: flex-start;
+  padding-top: 80px;
 }
 
-/* 日历主体 */
-.calendar {
-  background: var(--color-background);
-  border: 2px solid var(--color-text-sub-sub);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+.calendar-card {
   width: 100%;
-  max-width: 800px;
+  max-width: 650px;
+  background: var(--color-background);
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+  padding: 24px;
   transition: all 0.3s ease;
 }
 
-/* 日历头部 */
-.calendar-header {
+/* Header */
+.header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 14px;
-  background: var(--color-light-light);
-  border-bottom: 1px solid var(--color-text-sub-sub);
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 0 4px;
 }
 
-.nav-buttons {
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.year-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  font-family: 'Helvetica Neue', sans-serif;
+}
+
+.month-text {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.header-controls {
   display: flex;
   gap: 8px;
 }
 
-.nav-btn {
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: none;
+  background: var(--color-background-soft);
+  color: var(--color-text);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: transparent;
-  border: 1px solid var(--color-text-sub);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: var(--color-text);
+  transition: all 0.2s;
 }
 
-.nav-btn:hover {
-  background: var(--color-light);
-  border-color: var(--color-light);
-  color: white;
-  transform: scale(1.1);
+.icon-btn:hover {
+  background: var(--color-light-light);
+  transform: translateY(-1px);
+  color: var(--color-primary);
 }
 
-.nav-btn svg {
+.icon-btn svg {
+  width: 20px;
+  height: 20px;
   fill: currentColor;
 }
 
-.cal_h_time {
-  cursor: pointer;
-  font-size: 18px;
-  height: 34px;
-  line-height: 34px;
-}
-
-.cal_h_time:hover {
-  color: var(--color-light);
-}
-
-/* 星期标题 */
-.weekdays {
+/* Weekdays */
+.weekdays-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  background: var(--color-background);
-  border-bottom: 1px solid var(--color-text-sub-sub);
+  margin-bottom: 16px;
 }
 
-.weekday {
-  padding: 12px;
+.weekday-cell {
   text-align: center;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-sub);
-  font-size: 14px;
+  opacity: 0.8;
+  padding: 8px 0;
 }
 
-/* 日期网格 */
-.calendar-grid {
+/* Grid */
+.days-grid {
   display: flex;
   flex-direction: column;
-  margin: -1px; /* 防止与外边框重叠 */
+  gap: 4px;
 }
 
-.calendar-week {
+.week-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
 }
 
-/* 日期单元格 */
 .day-cell {
-  position: relative;
-  min-height: 80px;
-  padding: 8px;
-  border: 1px solid var(--color-text-sub-sub);
+  aspect-ratio: 1;
+  border-radius: 12px;
+  padding: 6px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: var(--color-background);
+  transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  /* 消除边框重叠 */
-  margin-right: -1px;
-  margin-bottom: -1px;
+  justify-content: space-between;
+  border: 1px solid transparent;
 }
 
 .day-cell:hover {
-  background: var(--color-light-light);
+  background: var(--color-background-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .day-cell--other-month {
-  color: var(--color-text-sub-sub);
-  background: rgba(var(--color-text-sub-sub), 0.05);
-}
-
-.day-cell--other-month:hover {
-  background: rgba(var(--color-text-sub-sub), 0.1);
-}
-
-.day-cell--today {
-  background: linear-gradient(135deg, var(--color-light) 0%, var(--color-light-light) 100%);
-  color: white;
-  font-weight: 600;
-}
-
-.day-cell--today .lunar-info,
-.day-cell--today .festival {
-  color: rgba(255, 255, 255, 0.9);
+  opacity: 0.3;
+  pointer-events: none; /* Optional: disable interaction */
 }
 
 .day-cell--selected {
-  background: var(--color-light-light);
+  border-color: var(--color-primary);
+  background: var(--color-background-soft);
 }
 
-.day-info {
+.day-cell--today {
+  background: var(--color-light-light) !important;
+  box-shadow: 0 4px 16px rgba(var(--color-primary-rgb), 0.2);
+}
+
+.day-cell--today .day-num {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.day-content {
+  height: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
 }
 
-/* 日期数字 */
-.day-number {
+.day-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.day-num {
   font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 4px;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1;
 }
 
-/* 农历信息 */
-.lunar-info {
-  font-size: 10px;
-  color: var(--color-text-sub);
-  margin-bottom: 4px;
-}
-
-/* 月相 */
-.moon {
-  position: absolute;
-  right: 8px;
-  top: 11px;
-  width: 15px;
-  height: 15px;
+/* Moon Phase */
+.moon-phase {
+  width: 12px;
+  height: 12px;
   background: linear-gradient(135deg, #fff6c8 10%, #ffd54f 60%, #ffb300 100%);
   border-radius: 50%;
   overflow: hidden;
-  box-shadow: 0 0 3px rgba(255, 204, 0, 0.4);
+  position: relative;
+  opacity: 0.8;
 }
 
 .moon_mask {
   position: relative;
-  width: 15px;
-  height: 15px;
-  background-color: var(--color-background);
+  width: 12px;
+  height: 12px;
+  background-color: var(--color-background); /* Needs to match card background */
   border-radius: 50%;
 }
 
-/* 节日信息 */
-.festivals {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: auto;
-  width: 100%;
+/* Lunar Text Types */
+.day-bottom {
+  text-align: center; /* Optional: align left or center */
 }
 
-.festival {
+.lunar-text {
   font-size: 10px;
-  padding: 1px 4px;
-  border-radius: 4px;
-  text-align: center;
-  font-weight: 500;
-  line-height: 1.2;
-  max-width: 100%;
+  color: var(--color-text-sub);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: block;
+  padding: 1px 4px;
+  border-radius: 4px;
 }
 
-.festival--solar {
-  background: rgba(255, 206, 86, 0.2);
-  color: #c09015;
-  border: 1px solid rgba(255, 206, 86, 0.3);
+.type-personal {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  font-weight: 600;
 }
 
-.festival--lunar {
-  background: rgba(54, 162, 235, 0.2);
-  color: #1787d2;
-  border: 1px solid rgba(54, 162, 235, 0.3);
+.type-solar-festival {
+  color: #4dabf7;
+  background: rgba(77, 171, 247, 0.1);
 }
 
-.festival--term {
-  background: rgba(75, 192, 192, 0.2);
-  color: #4bc0c0;
-  border: 1px solid rgba(75, 192, 192, 0.3);
+.type-lunar-festival {
+  color: #ff922b;
+  background: rgba(255, 146, 43, 0.1);
 }
 
-.festival--personal {
-  background: rgba(255, 99, 132, 0.2);
-  color: #ff6384;
-  border: 1px solid rgba(255, 99, 132, 0.3);
+.type-term {
+  color: #20c997;
 }
 
-/* 响应式设计 */
+/* Responsive */
 @media (max-width: 768px) {
-  .calendar-container {
-    padding: 10px;
-    gap: 15px;
+  .container {
+    padding: 20px 10px;
   }
   
-  .today-panel {
-    flex-direction: column;
-    gap: 12px;
-    text-align: center;
+  .calendar-card {
+    padding: 20px 12px;
   }
   
-  .calendar-header {
-    padding: 15px;
-  }
-
-  
-  .day-cell {
-    min-height: 60px;
-    padding: 4px;
+  .day-num {
+    font-size: 16px;
   }
   
-  .day-number {
-    font-size: 14px;
+  .lunar-text {
+    font-size: 10px;
+    transform: scale(0.9);
+    transform-origin: left bottom;
   }
   
-  .lunar-info {
-    font-size: 9px;
+  .year-text, .month-text {
+    font-size: 24px;
   }
-  
-  .festival {
-    font-size: 8px;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav-btn {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .day-cell {
-    min-height: 50px;
-    padding: 2px;
-  }
-  
-  .day-number {
-    font-size: 12px;
-  }
-  
-  .lunar-info {
-    font-size: 8px;
-  }
-  
-  .moon-phase {
-    width: 10px;
-    height: 10px;
-  }
-}
-
-/* 动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.calendar {
-  animation: fadeIn 0.5s ease-out;
-}
-
-.day-cell {
-  animation: fadeIn 0.3s ease-out;
 }
 </style>
