@@ -6,8 +6,11 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router'
 import { useMessage, NButton, NTooltip, NModal } from 'naive-ui'
 
-import { checkLoginPromise } from '@/utils/userUtils';
 import { getSecret, updateState, updateMessage } from '@/api/secretAPI'
+
+definePageMeta({
+  middleware: 'auth'
+})
 
 const message = useMessage()
 const router = useRouter()
@@ -92,12 +95,6 @@ function onUpdateMessage() {
 }
 
 onMounted(() => {
-  checkLoginPromise().then((result) => {
-    if (!result) {
-      router.push('/')
-      message.error("请先登录！")
-    }
-
     const start_words_first =
       '欢迎来到秘密树洞！@' +
       '从今天到小小语毕业，这里每天都会浮现一条小小槟的“小秘密”。@' +
@@ -149,7 +146,6 @@ onMounted(() => {
         }
       }
     });
-  });
 });
 </script>
 

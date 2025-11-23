@@ -33,7 +33,7 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { NModal, useMessage } from 'naive-ui'
 import '@/assets/icons/iconfont'
-import { userlogin, initUser, checkLogin, userlogout, addUpdateFun } from '@/utils/userUtils';
+import { userlogin, checkLogin, userlogout, addUpdateFun } from '@/utils/userUtils';
 import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
@@ -80,11 +80,6 @@ addUpdateFun(() => {
   } else {
     router_items['日历'].shown = false
   }
-})
-
-// 初始化User信息
-initUser().then(data => {
-  if (data && data.status == 0) message.success(data.message)
 })
 
 function onLogin() {

@@ -1,11 +1,12 @@
 <!-- 日历页 Calendar -->
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router'
-import { useMessage } from 'naive-ui'
 
 import calendar from '@/utils/calendarUtils'
-import { checkLoginPromise } from '@/utils/userUtils';
+
+definePageMeta({
+  middleware: 'auth'
+})
 
 // 响应式数据
 const now_date = ref(new Date())
@@ -205,15 +206,6 @@ watch(show_date, () => {
 }, { immediate: true })
 
 onMounted(() => {
-  const message = useMessage()
-  const router = useRouter()
-
-  checkLoginPromise().then((result) => {
-    if (!result) {
-      router.push('/')
-      message.error("请先登录！")
-    }
-  });
 });
 </script>
 
