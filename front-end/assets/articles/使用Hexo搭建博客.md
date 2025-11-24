@@ -46,7 +46,7 @@ Node.js 为大多数平台提供了官方的 [安装程序](https://nodejs.org/z
 
 所有必备的应用程序安装完成后，即可使用 npm 安装 Hexo。
 
-```shell
+```bash
 npm install -g hexo-cli
 ```
 
@@ -56,7 +56,7 @@ npm install -g hexo-cli
 
 安装 Hexo 完成后，请执行下列命令，Hexo 将会在指定文件夹中新建所需要的文件。
 
-```shell
+```bash
 hexo init <folder>
 cd <folder>
 npm install
@@ -91,7 +91,7 @@ npm install
 
 ### new
 
-```
+```bash
 hexo new [layout] <title>
 ```
 
@@ -113,7 +113,7 @@ hexo new page --path about/me "About me"
 
 ### generate
 
-```
+```bash
 hexo generate
 ```
 
@@ -129,7 +129,7 @@ hexo generate
 
 ### publish
 
-```
+```bash
 hexo publish [layout] <filename>
 ```
 
@@ -137,7 +137,7 @@ hexo publish [layout] <filename>
 
 ### server
 
-```
+```bash
 hexo server
 ```
 
@@ -151,7 +151,7 @@ hexo server
 
 ### deploy
 
-```
+```bash
 hexo deploy
 ```
 
@@ -163,7 +163,7 @@ hexo deploy
 
 ### clean
 
-```
+```bash
 hexo clean
 ```
 
@@ -177,7 +177,7 @@ Hexo 的默认主题是非常简陋的，但幸运的是 Hexo 可以很容易地
 
 Hexo 安装主题非常简单，只需要把主题文件放入 themes 目录即可。官方推荐的方式是直接使用git将项目克隆到 themes 目录，即使用：
 
-```shell
+```bash
 git clone https://github.com/next-theme/hexo-theme-next themes/next
 ```
 
