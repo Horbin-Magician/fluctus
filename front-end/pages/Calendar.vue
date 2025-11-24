@@ -1,4 +1,125 @@
 <!-- 日历页 Calendar -->
+<template>
+  <div class="container">
+    <div class="calendar-card">
+      <!-- 头部 -->
+      <header class="header">
+        <div class="header-left">
+          <div class="date-btn" @click="openYearPicker" title="选择年份">
+            <span class="data-text">{{ show_date.getFullYear() }}</span>
+            <svg class="edit-icon" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+          <div class="date-btn" @click="openMonthPicker" title="选择月份">
+            <span class="data-text">{{ show_date.getMonth() + 1 }}月</span>
+            <svg class="edit-icon" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+        </div>
+        
+        <div class="header-controls">
+          <button class="icon-btn" @click="navigateMonth(-1)" title="上个月">
+            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          </button>
+          <button class="icon-btn" @click="show_date = new Date()" title="今天">
+            <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2.9.9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+          </button>
+          <button class="icon-btn" @click="navigateMonth(1)" title="下个月">
+            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- 星期 -->
+      <div class="weekdays-row">
+        <span v-for="week in weeks" :key="week" class="weekday-cell">{{ week }}</span>
+      </div>
+
+      <!-- 日期网格 -->
+      <div class="days-grid">
+        <div 
+          v-for="(week, i) in monthData" 
+          :key="i"
+          class="week-row"
+        >
+          <div 
+            v-for="dayInfo in week" 
+            :key="`${dayInfo.fullYear}-${dayInfo.month}-${dayInfo.day}`"
+            :class="getCellClass(dayInfo)"
+            @click="onDateClick(dayInfo)"
+          >
+            <div class="day-content">
+              <div class="day-top">
+                <span class="day-num">{{ dayInfo.day }}</span>
+                <div class="moon-phase" title="月相">
+                   <div class="moon_mask" :style="getMoonPhaseOffset(dayInfo)" />
+                </div>
+              </div>
+              
+              <div class="day-bottom">
+                <span 
+                  class="lunar-text"
+                  :class="`type-${getDayDisplayInfo(dayInfo).type}`"
+                >
+                  {{ getDayDisplayInfo(dayInfo).text }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date Picker Modal -->
+      <div v-if="isDatePickerOpen" class="date-picker-modal" @click.self="closeDatePicker">
+        <div class="date-picker-content">
+          <div class="picker-header">{{ pickerMode === 'year' ? '选择年份' : '选择月份' }}</div>
+          
+          <div class="picker-body">
+            <!-- Year Picker -->
+            <div v-if="pickerMode === 'year'" class="year-picker-container">
+              <div class="year-nav">
+                <button class="icon-btn small" @click="changeYearRange(-1)">
+                   <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                </button>
+                <span class="range-text">{{ yearRangeStart }} - {{ yearRangeStart + 11 }}</span>
+                <button class="icon-btn small" @click="changeYearRange(1)">
+                   <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                </button>
+              </div>
+              <div class="year-grid">
+                <div
+                  v-for="offset in 12"
+                  :key="offset"
+                  class="year-item"
+                  :class="{ active: (yearRangeStart + offset - 1) === tempYear }"
+                  @click="selectYear(yearRangeStart + offset - 1)"
+                >
+                  {{ yearRangeStart + offset - 1 }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Month Picker -->
+            <div v-else class="month-selector">
+              <div
+                v-for="m in 12"
+                :key="m"
+                class="month-item"
+                :class="{ active: tempMonth === m - 1 }"
+                @click="selectMonth(m - 1)"
+              >
+                {{ m }}月
+              </div>
+            </div>
+          </div>
+          
+          <div class="picker-footer">
+            <button class="btn btn-cancel" @click="closeDatePicker">取消</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 
@@ -235,127 +356,6 @@ onMounted(() => {
 });
 </script>
 
-<template>
-  <div class="container">
-    <div class="calendar-card">
-      <!-- 头部 -->
-      <header class="header">
-        <div class="header-left">
-          <div class="date-btn" @click="openYearPicker" title="选择年份">
-            <span class="year-text">{{ show_date.getFullYear() }}</span>
-            <svg class="edit-icon" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-          </div>
-          <div class="date-btn" @click="openMonthPicker" title="选择月份">
-            <span class="month-text">{{ show_date.getMonth() + 1 }}月</span>
-            <svg class="edit-icon" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-          </div>
-        </div>
-        
-        <div class="header-controls">
-          <button class="icon-btn" @click="navigateMonth(-1)" title="上个月">
-            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-          </button>
-          <button class="icon-btn" @click="show_date = new Date()" title="今天">
-            <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2.9.9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
-          </button>
-          <button class="icon-btn" @click="navigateMonth(1)" title="下个月">
-            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-          </button>
-        </div>
-      </header>
-
-      <!-- 星期 -->
-      <div class="weekdays-row">
-        <span v-for="week in weeks" :key="week" class="weekday-cell">{{ week }}</span>
-      </div>
-
-      <!-- 日期网格 -->
-      <div class="days-grid">
-        <div 
-          v-for="(week, i) in monthData" 
-          :key="i"
-          class="week-row"
-        >
-          <div 
-            v-for="dayInfo in week" 
-            :key="`${dayInfo.fullYear}-${dayInfo.month}-${dayInfo.day}`"
-            :class="getCellClass(dayInfo)"
-            @click="onDateClick(dayInfo)"
-          >
-            <div class="day-content">
-              <div class="day-top">
-                <span class="day-num">{{ dayInfo.day }}</span>
-                <div class="moon-phase" title="月相">
-                   <div class="moon_mask" :style="getMoonPhaseOffset(dayInfo)" />
-                </div>
-              </div>
-              
-              <div class="day-bottom">
-                <span 
-                  class="lunar-text"
-                  :class="`type-${getDayDisplayInfo(dayInfo).type}`"
-                >
-                  {{ getDayDisplayInfo(dayInfo).text }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Date Picker Modal -->
-      <div v-if="isDatePickerOpen" class="date-picker-modal" @click.self="closeDatePicker">
-        <div class="date-picker-content">
-          <div class="picker-header">{{ pickerMode === 'year' ? '选择年份' : '选择月份' }}</div>
-          
-          <div class="picker-body">
-            <!-- Year Picker -->
-            <div v-if="pickerMode === 'year'" class="year-picker-container">
-              <div class="year-nav">
-                <button class="icon-btn small" @click="changeYearRange(-1)">
-                   <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
-                </button>
-                <span class="range-text">{{ yearRangeStart }} - {{ yearRangeStart + 11 }}</span>
-                <button class="icon-btn small" @click="changeYearRange(1)">
-                   <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-                </button>
-              </div>
-              <div class="year-grid">
-                <div
-                  v-for="offset in 12"
-                  :key="offset"
-                  class="year-item"
-                  :class="{ active: (yearRangeStart + offset - 1) === tempYear }"
-                  @click="selectYear(yearRangeStart + offset - 1)"
-                >
-                  {{ yearRangeStart + offset - 1 }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Month Picker -->
-            <div v-else class="month-selector">
-              <div
-                v-for="m in 12"
-                :key="m"
-                class="month-item"
-                :class="{ active: tempMonth === m - 1 }"
-                @click="selectMonth(m - 1)"
-              >
-                {{ m }}月
-              </div>
-            </div>
-          </div>
-          
-          <div class="picker-footer">
-            <button class="btn btn-cancel" @click="closeDatePicker">取消</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <style scoped>
 .container {
   min-height: calc(100vh - 30px);
@@ -418,16 +418,9 @@ onMounted(() => {
   opacity: 0.5;
 }
 
-.year-text {
+.data-text {
   font-size: 24px;
   font-weight: 700;
-  color: var(--color-text-sub);
-  font-family: 'Helvetica Neue', sans-serif;
-}
-
-.month-text {
-  font-size: 24px;
-  font-weight: 800;
   color: var(--color-text);
 }
 
