@@ -103,7 +103,7 @@ h1 {
 .category {
   padding: 2px 8px;
   background: var(--color-light);
-  color: white;
+  color: var(--color-background);
   border-radius: 4px;
   font-size: 0.8em;
 }
