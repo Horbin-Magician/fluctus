@@ -33,8 +33,8 @@ onMounted(() => {
 <style scoped>
 .blog-container {
   max-width: 800px;
-  margin: 80px auto;
-  padding: 0 20px;
+  margin: 0px auto;
+  padding-top: 80px;
 }
 
 h1 {
