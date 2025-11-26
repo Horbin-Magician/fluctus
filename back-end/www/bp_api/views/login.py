@@ -2,11 +2,12 @@ from flask import views,request,session,jsonify
 import json
 
 from tools.dbControllers.BaseDbController import BaseDbController
+from www.decorators import rate_limit
 
 
 class LoginView(views.View):
   methods = ['POST']
-  decorators = []
+  decorators = [rate_limit(max_attempts=5, time_window=60)]
 
   def dispatch_request(self):
     return_dict = {'status':'1'}

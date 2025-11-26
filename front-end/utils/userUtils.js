@@ -46,6 +46,15 @@ export const userlogin = (username, password) => {
       update()//更新
       isLogining = false
       resolve(data)
+    }).catch(error => {
+      const errorData = error.response._data || error.data
+      const data = {
+        status: '1',
+        message: errorData?.message || '网络错误，请稍后重试！'
+      }
+      update()//更新
+      isLogining = false
+      resolve(data)
     })
   })
 }
