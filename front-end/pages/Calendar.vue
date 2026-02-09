@@ -5,24 +5,24 @@
       <!-- 头部 -->
       <header class="header">
         <div class="header-left">
-          <div class="date-btn" @click="openYearPicker" title="选择年份">
+          <div class="date-btn" title="选择年份" @click="openYearPicker">
             <span class="data-text">{{ show_date.getFullYear() }}</span>
             <svg class="edit-icon" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
           </div>
-          <div class="date-btn" @click="openMonthPicker" title="选择月份">
+          <div class="date-btn" title="选择月份" @click="openMonthPicker">
             <span class="data-text">{{ show_date.getMonth() + 1 }}月</span>
             <svg class="edit-icon" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
           </div>
         </div>
         
         <div class="header-controls">
-          <button class="icon-btn" @click="navigateMonth(-1)" title="上个月">
+          <button class="icon-btn" title="上个月" @click="navigateMonth(-1)">
             <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
           </button>
-          <button class="icon-btn" @click="show_date = new Date()" title="今天">
+          <button class="icon-btn" title="今天" @click="show_date = new Date()">
             <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2.9.9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
           </button>
-          <button class="icon-btn" @click="navigateMonth(1)" title="下个月">
+          <button class="icon-btn" title="下个月" @click="navigateMonth(1)">
             <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
           </button>
         </div>
@@ -146,12 +146,6 @@ const yearRangeStart = ref(new Date().getFullYear() - 4) // 年份选择器的�
 const weeks = ["一", "二", "三", "四", "五", "六", "日"]
 
 // 导航函数
-function navigateYear(direction) {
-  const newDate = new Date(show_date.value)
-  newDate.setFullYear(newDate.getFullYear() + direction)
-  show_date.value = newDate
-}
-
 function openYearPicker() {
   pickerMode.value = 'year'
   tempYear.value = show_date.value.getFullYear()
