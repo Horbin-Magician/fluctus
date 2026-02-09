@@ -2,7 +2,13 @@
 <template>
   <header :class="{ 'header-hidden': isHeaderHidden }">
     <div class="logo">
-      <svg class="icon" aria-hidden="true" @click="onLogoClicked">
+      <n-dropdown v-if="isLoggedIn" :options="dropdownOptions" trigger="hover"
+        @select="onDropdownSelect">
+        <svg class="icon" aria-hidden="true">
+          <use xlink:href="#icon-logo" />
+        </svg>
+      </n-dropdown>
+      <svg v-else class="icon" aria-hidden="true" @click="showLoginModal = true">
         <use xlink:href="#icon-logo" />
       </svg>
     </div>
@@ -31,7 +37,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import { NModal, useMessage } from 'naive-ui'
+import { NModal, NDropdown, useMessage } from 'naive-ui'
 import '@/assets/icons/iconfont'
 import { userlogin, checkLogin, userlogout, addUpdateFun } from '@/utils/userUtils';
 import storageUtils from '@/utils/storageUtils';
@@ -60,6 +66,12 @@ const showLogoutModal = ref(false)
 const user_name = ref('')
 const user_key = ref('')
 const isHeaderHidden = ref(false)
+const isLoggedIn = ref(checkLogin())
+
+const dropdownOptions = [
+  { label: '后台管理', key: 'admin' },
+  { label: '注销', key: 'logout' }
+]
 
 function handleScroll() {
   isHeaderHidden.value = window.scrollY > 0
@@ -75,11 +87,9 @@ onUnmounted(() => {
 })
 
 addUpdateFun(() => {
-  if (checkLogin()) {
-    router_items['日历'].shown = true
-  } else {
-    router_items['日历'].shown = false
-  }
+  const loggedIn = checkLogin()
+  isLoggedIn.value = loggedIn
+  router_items['日历'].shown = loggedIn
 })
 
 function onLogin() {
@@ -93,8 +103,12 @@ function onLogin() {
   })
 }
 
-function onLogoClicked() {
-  return checkLogin() ? showLogoutModal.value = true : showLoginModal.value = true
+function onDropdownSelect(key) {
+  if (key === 'admin') {
+    navigateTo('/admin')
+  } else if (key === 'logout') {
+    showLogoutModal.value = true
+  }
 }
 
 function logout() {
@@ -143,6 +157,10 @@ header.header-hidden {
   margin-left: 20px;
   margin-right: 20px;
   transform-origin: center center;
+}
+
+.logo :deep(> *) {
+  outline: none;
 }
 
 .logo svg {
