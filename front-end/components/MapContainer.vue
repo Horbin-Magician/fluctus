@@ -1,31 +1,71 @@
 <template>
   <div class="map-container">
     <div id="amap"/>
-    
-    <div class="search-panel">
-      <div class="search-box">
-        <input
-          id="search_input"
-          v-model="searchKeyword"
-          type="text"
-          placeholder="搜索地点、景点、餐厅..."
-          @keyup.enter="handleSearch"
-        />
-        <button class="search-btn" @click="handleSearch">🔍</button>
-      </div>
-      
-      <div v-if="searchResults.length > 0" class="search-results">
-        <div 
-          v-for="(result, index) in searchResults" 
-          :key="index"
-          class="search-result-item"
-          @click="selectSearchResult(result)"
-        >
-          <div class="result-name">{{ result.name }}</div>
-          <div class="result-address">{{ result.address }}</div>
+
+    <div class="sidebar" :class="{ collapsed: !sidebarOpen }">
+      <div class="sidebar-content">
+        <div class="sidebar-header">
+          <button class="back-btn" @click="$emit('back')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <span class="sidebar-diary-name">{{ diaryName }}</span>
+          <button class="sidebar-close-btn" @click="toggleSidebar">×</button>
+        </div>
+        <div class="sidebar-section">
+          <div class="search-box">
+            <input
+              id="search_input"
+              v-model="searchKeyword"
+              type="text"
+              placeholder="搜索地点、景点、餐厅..."
+              @keyup.enter="handleSearch"
+            >
+            <button class="search-btn" @click="handleSearch">🔍</button>
+          </div>
+          <div v-if="searchResults.length > 0" class="search-results">
+            <div
+              v-for="(result, index) in searchResults"
+              :key="index"
+              class="search-result-item"
+              @click="selectSearchResult(result)"
+            >
+              <div class="result-name">{{ result.name }}</div>
+              <div class="result-address">{{ result.address }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-divider"/>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title clickable" @click="showPlaces = !showPlaces">
+            <h3>日记地点 ({{ places.length }})</h3>
+            <span class="favorites-toggle">{{ showPlaces ? '收起' : '展开' }}</span>
+          </div>
+          <div v-if="showPlaces" class="favorites-list">
+            <div
+              v-for="place in places"
+              :key="place.id"
+              class="favorite-item"
+              @click="goToPlace(place)"
+            >
+              <div class="favorite-info">
+                <div class="favorite-name">{{ place.name }}</div>
+                <div class="favorite-address">{{ place.address }}</div>
+              </div>
+              <button class="remove-favorite" @click.stop="$emit('remove-place', place.id)">🗑️</button>
+            </div>
+            <div v-if="places.length === 0" class="no-favorites">暂无地点，搜索并添加吧</div>
+          </div>
         </div>
       </div>
     </div>
+
+    <button class="sidebar-toggle-btn" :class="{ 'sidebar-open': sidebarOpen }" @click="toggleSidebar">
+      {{ sidebarOpen ? '◀' : '▶' }}
+    </button>
 
     <div v-if="selectedMarker" class="marker-info-panel">
       <div class="marker-info-header">
@@ -36,56 +76,38 @@
         <p><strong>地址:</strong> {{ selectedMarker.address }}</p>
         <p v-if="selectedMarker.tel"><strong>电话:</strong> {{ selectedMarker.tel }}</p>
         <p v-if="selectedMarker.type"><strong>类型:</strong> {{ selectedMarker.type }}</p>
+        <div v-if="isPlaceInDiary(selectedMarker)" class="marker-type-section">
+          <p class="marker-type-label"><strong>标记图标:</strong></p>
+          <div class="marker-type-options">
+            <button
+              v-for="opt in markerTypeOptions"
+              :key="opt.code"
+              class="marker-type-btn"
+              :class="{ active: getPlaceTypecode(selectedMarker) === opt.code }"
+              :style="getPlaceTypecode(selectedMarker) === opt.code
+                ? { borderColor: opt.color, background: opt.color, color: '#fff' }
+                : { '--hover-color': opt.color }"
+              :title="opt.label"
+              @click="$emit('update-place-type', getPlaceDbId(selectedMarker), opt.code)"
+              v-html="opt.preview"
+            />
+          </div>
+        </div>
         <div class="marker-actions">
-          <button 
+          <button
+            v-if="!isPlaceInDiary(selectedMarker)"
             class="action-btn favorite-btn"
-            :class="{ active: selectedMarker.isFavorite }"
-            @click="toggleFavorite"
+            @click="$emit('add-place', selectedMarker)"
           >
-            {{ selectedMarker.isFavorite ? '❤️ 已收藏' : '🤍 收藏' }}
+            + 添加到日记
           </button>
-          <button class="action-btn note-btn" @click="addNote">
-            📝 添加笔记
+          <button
+            v-else
+            class="action-btn favorite-btn active"
+            @click="$emit('remove-place', getPlaceDbId(selectedMarker))"
+          >
+            - 从日记移除
           </button>
-        </div>
-        <div v-if="selectedMarker.note" class="marker-note">
-          <strong>笔记:</strong>
-          <p>{{ selectedMarker.note }}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="favorites-panel" :class="{ open: showFavorites }">
-      <div class="favorites-header" @click="toggleFavorites">
-        <h3>我的收藏</h3>
-        <button class="toggle-btn">{{ showFavorites ? '收起' : '展开' }}</button>
-      </div>
-      <div v-if="showFavorites" class="favorites-list">
-        <div 
-          v-for="favorite in favorites" 
-          :key="favorite.id"
-          class="favorite-item"
-          @click="goToFavorite(favorite)"
-        >
-          <div class="favorite-name">{{ favorite.name }}</div>
-          <div class="favorite-address">{{ favorite.address }}</div>
-          <button class="remove-favorite" @click.stop="removeFavorite(favorite.id)">🗑️</button>
-        </div>
-        <div v-if="favorites.length === 0" class="no-favorites">暂无收藏地点</div>
-      </div>
-    </div>
-
-    <div v-if="showNoteModal" class="note-modal-overlay" @click="closeNoteModal">
-      <div class="note-modal" @click.stop>
-        <h3>添加笔记</h3>
-        <textarea 
-          v-model="noteText" 
-          placeholder="在这里记录你的想法..."
-          rows="4"
-        ></textarea>
-        <div class="note-modal-actions">
-          <button class="cancel-btn" @click="closeNoteModal">取消</button>
-          <button class="save-btn" @click="saveNote">保存</button>
         </div>
       </div>
     </div>
@@ -93,33 +115,35 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import AMapLoader from "@amap/amap-jsapi-loader";
+
+const props = defineProps({
+  places: { type: Array, default: () => [] },
+  diaryName: { type: String, default: '' }
+})
+const _emit = defineEmits(['add-place', 'remove-place', 'update-place-type', 'back'])
 
 const searchKeyword = ref('');
 const searchResults = ref([]);
 const selectedMarker = ref(null);
-const showFavorites = ref(false);
-const favorites = ref([]);
-const showNoteModal = ref(false);
-const noteText = ref('');
+const showPlaces = ref(true);
+const sidebarOpen = ref(true);
 
 let map = null;
 let AMap = null;
 let placeSearch = null;
 let autocomplete = null;
-let markers = [];
+const mapReady = ref(false);
+const searchMarkers = [];
+const diaryMarkers = [];
 
-onMounted(() => {
-  initMap();
-  loadFavorites();
-});
+onMounted(() => { initMap() });
 
 const initMap = () => {
   window._AMapSecurityConfig = {
-    securityJsCode: "467acecf4320cdce83d519705e1aad3b",
+    securityJsCode: "467acecf4320cdce83d519705e1aad3b", // TODO - 生产环境请替换为正式的安全码
   };
-
   AMapLoader.load({
     key: "3fbe22db53162479e06074420635fba4",
     version: "2.0",
@@ -127,33 +151,25 @@ const initMap = () => {
   })
     .then((loadedAMap) => {
       AMap = loadedAMap;
-      
       map = new AMap.Map("amap", {
         zoom: 13,
         center: [116.397428, 39.90923],
       });
-
       map.addControl(new AMap.Scale());
+      mapReady.value = true;
       initSearch();
-      map.on('click', onMapClick);
+      renderDiaryMarkers();
     })
     .catch(console.error);
 };
 
 const initSearch = () => {
   placeSearch = new AMap.PlaceSearch({
-    pageSize: 10,
-    city: "全国",
-    map: map,
-    panel: false
+    pageSize: 10, city: "全国", panel: false
   });
-
   autocomplete = new AMap.Autocomplete({
-    input: "search_input",
-    city: "全国"
+    input: "search_input", city: "全国"
   });
-
-  placeSearch.on('complete', onSearchComplete);
   autocomplete.on('select', (e) => {
     searchKeyword.value = e.poi.name;
     handleSearch();
@@ -168,20 +184,15 @@ const handleSearch = () => {
 };
 
 const onSearchComplete = (result) => {
-  clearMarkers();
+  clearSearchMarkers();
   searchResults.value = [];
-  
   if (result.poiList?.pois) {
     searchResults.value = result.poiList.pois.map(poi => ({
-      id: poi.id,
-      name: poi.name,
-      address: poi.address,
-      location: poi.location,
-      tel: poi.tel,
-      type: poi.type,
-      typecode: poi.typecode
+      id: poi.id, name: poi.name, address: poi.address,
+      location: poi.location, tel: poi.tel,
+      type: poi.type, typecode: poi.typecode
     }));
-    addMarkersToMap(searchResults.value);
+    addSearchMarkers(searchResults.value);
   }
 };
 
@@ -194,198 +205,188 @@ const selectSearchResult = (result) => {
   searchResults.value = [];
 };
 
-// 添加标记到地图
-const addMarkersToMap = (places) => {
+const addSearchMarkers = (places) => {
   places.forEach(place => {
-    if (place.location) {
-      const marker = new AMap.Marker({
-        position: [place.location.lng, place.location.lat],
-        title: place.name,
-        icon: getMarkerIcon(place.typecode)
-      });
-
-      marker.setMap(map);
-      marker.place = place;
-      
-      // 标记点击事件
-      marker.on('click', () => {
-        showMarkerInfo(place);
-      });
-
-      markers.push(marker);
-    }
+    if (!place.location) return;
+    const marker = new AMap.Marker({
+      position: [place.location.lng, place.location.lat],
+      title: place.name,
+      content: createMarkerContent(place.typecode, false, null),
+      offset: new AMap.Pixel(-15, -38)
+    });
+    marker.setMap(map);
+    marker.on('click', () => showMarkerInfo(place));
+    searchMarkers.push(marker);
   });
 };
 
-// 获取标记图标
-const getMarkerIcon = (typecode) => {
-  // 根据类型码返回不同图标
-  const iconMap = {
-    '060000': '🏛️', // 景点
-    '050000': '🍽️', // 餐饮
-    '100000': '🏨', // 住宿
-    '060100': '🛍️', // 购物
-    '150000': '🚇'  // 交通
-  };
-  
-  const icon = iconMap[typecode] || '📍';
-  
-  return new AMap.Icon({
-    size: new AMap.Size(32, 32),
-    image: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-        <circle cx="16" cy="16" r="12" fill="#ff4757" stroke="#fff" stroke-width="2"/>
-        <text x="16" y="20" text-anchor="middle" font-size="12">${icon}</text>
-      </svg>
-    `)}`
-  });
+// 高德 POI typecode 前两位对应大类
+const svgIcons = {
+  // 餐饮 05xxxx
+  '05': '<path d="M8 2v4c0 1.1.9 2 2 2h1v12h2V8h1c1.1 0 2-.9 2-2V2h-2v4h-1V2h-2v4h-1V2H8z" fill="currentColor"/>',
+  // 购物 06xxxx
+  '06': '<path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 14H6V8h2v1c0 .55.45 1 1 1s1-.45 1-1V8h4v1c0 .55.45 1 1 1s1-.45 1-1V8h2v10z" fill="currentColor"/>',
+  // 住宿 10xxxx
+  '10': '<path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V6H1v14h2v-3h18v3h2v-8c0-2.21-1.79-4-4-4z" fill="currentColor"/>',
+  // 风景名胜 11xxxx
+  '11': '<path d="M14 6l-3.75 5 2.85 3.8-1.6 1.2C9.81 13.75 7 10 7 10l-6 8h22L14 6z" fill="currentColor"/>',
+  // 交通 15xxxx
+  '15': '<path d="M12 2C8 2 4 2.5 4 6v9.5c0 1.38 1.12 2.5 2.5 2.5L5 19.5V20h2l1.5-1.5h7L17 20h2v-.5L17.5 18c1.38 0 2.5-1.12 2.5-2.5V6c0-3.5-4-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM18 11H6V6h12v5z" fill="currentColor"/>',
 };
 
-// 显示标记信息
+const defaultIcon = '<path d="M12 2C8.13 2 5 5.13 5 9c0 4.17 4.42 9.92 6.24 12.11.4.48 1.13.48 1.52 0C14.58 18.92 19 13.17 19 9c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>';
+
+// 每个类别对应的颜色
+const typeColors = {
+  '05': '#f97316', // 餐饮 - 橙色
+  '06': '#a855f7', // 购物 - 紫色
+  '10': '#3b82f6', // 住宿 - 蓝色
+  '11': '#2ecc71', // 风景 - 绿色
+  '15': '#64748b', // 交通 - 灰蓝
+};
+const defaultDiaryColor = '#ef4444'; // 默认 - 红色
+
+const getColorByTypecode = (typecode) => {
+  if (!typecode) return defaultDiaryColor;
+  const prefix = typecode.substring(0, 2);
+  return typeColors[prefix] || defaultDiaryColor;
+};
+
+const getIconByTypecode = (typecode) => {
+  if (!typecode) return defaultIcon;
+  const prefix = typecode.substring(0, 2);
+  return svgIcons[prefix] || defaultIcon;
+};
+
+const createMarkerContent = (typecode, isDiary, name) => {
+  const color = isDiary ? getColorByTypecode(typecode) : '#3b82f6';
+  const iconSvg = getIconByTypecode(typecode);
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer;';
+
+  // Pin body
+  const pin = document.createElement('div');
+  pin.style.cssText = `width:30px;height:30px;border-radius:50% 50% 50% 0;background:${color};transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:2px solid #fff;`;
+
+  const iconContainer = document.createElement('div');
+  iconContainer.style.cssText = 'transform:rotate(45deg);display:flex;align-items:center;justify-content:center;';
+  iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="color:#fff">${iconSvg}</svg>`;
+
+  pin.appendChild(iconContainer);
+  wrapper.appendChild(pin);
+
+  // Pin tail
+  const tail = document.createElement('div');
+  tail.style.cssText = `width:2px;height:6px;background:${color};margin-top:-1px;`;
+  wrapper.appendChild(tail);
+
+  // Name label for diary markers
+  if (isDiary && name) {
+    const label = document.createElement('div');
+    label.style.cssText = 'margin-top:2px;padding:1px 6px;background:rgba(255,255,255,0.92);border-radius:3px;font-size:11px;color:#333;white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px rgba(0,0,0,0.15);line-height:1.4;';
+    label.textContent = name;
+    wrapper.appendChild(label);
+  }
+
+  return wrapper;
+};
+
 const showMarkerInfo = (place) => {
-  const favorite = favorites.value.find(f => f.id === place.id);
-  selectedMarker.value = {
-    ...place,
-    isFavorite: !!favorite,
-    note: favorite?.note || ''
-  };
+  selectedMarker.value = place;
 };
 
-// 关闭标记信息
 const closeMarkerInfo = () => {
   selectedMarker.value = null;
 };
 
-// 切换收藏状态
-const toggleFavorite = () => {
-  if (!selectedMarker.value) return;
-  
-  const marker = selectedMarker.value;
-  const existingIndex = favorites.value.findIndex(f => f.id === marker.id);
-  
-  if (existingIndex >= 0) {
-    // 取消收藏
-    favorites.value.splice(existingIndex, 1);
-    marker.isFavorite = false;
-  } else {
-    // 添加收藏
-    const favorite = {
-      id: marker.id,
-      name: marker.name,
-      address: marker.address,
-      location: marker.location,
-      tel: marker.tel,
-      type: marker.type,
-      note: marker.note || '',
-      createdAt: new Date().toISOString()
-    };
-    favorites.value.push(favorite);
-    marker.isFavorite = true;
-  }
-  
-  saveFavorites();
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value;
 };
 
-// 添加笔记
-const addNote = () => {
-  noteText.value = selectedMarker.value?.note || '';
-  showNoteModal.value = true;
+const clearSearchMarkers = () => {
+  searchMarkers.forEach(m => m.setMap(null));
+  searchMarkers.length = 0;
 };
 
-// 保存笔记
-const saveNote = () => {
-  if (!selectedMarker.value) return;
-  
-  selectedMarker.value.note = noteText.value;
-  
-  // 更新收藏中的笔记
-  const favoriteIndex = favorites.value.findIndex(f => f.id === selectedMarker.value.id);
-  if (favoriteIndex >= 0) {
-    favorites.value[favoriteIndex].note = noteText.value;
-    saveFavorites();
-  }
-  
-  closeNoteModal();
+const clearDiaryMarkers = () => {
+  diaryMarkers.forEach(m => m.setMap(null));
+  diaryMarkers.length = 0;
 };
 
-// 关闭笔记模态框
-const closeNoteModal = () => {
-  showNoteModal.value = false;
-  noteText.value = '';
-};
-
-// 切换收藏面板
-const toggleFavorites = () => {
-  showFavorites.value = !showFavorites.value;
-};
-
-// 跳转到收藏地点
-const goToFavorite = (favorite) => {
-  if (favorite.location) {
-    map.setCenter([favorite.location.lng, favorite.location.lat]);
-    map.setZoom(16);
-    showMarkerInfo(favorite);
-  }
-};
-
-// 删除收藏
-const removeFavorite = (id) => {
-  const index = favorites.value.findIndex(f => f.id === id);
-  if (index >= 0) {
-    favorites.value.splice(index, 1);
-    saveFavorites();
-    
-    // 更新当前选中标记的收藏状态
-    if (selectedMarker.value && selectedMarker.value.id === id) {
-      selectedMarker.value.isFavorite = false;
-    }
-  }
-};
-
-
-// 地图点击事件
-const onMapClick = (e) => {
-  // 可以在这里添加自定义标记功能
-  console.log('地图点击位置:', e.lnglat);
-};
-
-// 清除所有标记
-const clearMarkers = () => {
-  markers.forEach(marker => {
-    marker.setMap(null);
+const renderDiaryMarkers = () => {
+  if (!AMap || !map) return;
+  clearDiaryMarkers();
+  props.places.forEach(place => {
+    if (!place.lng || !place.lat) return;
+    const marker = new AMap.Marker({
+      position: [place.lng, place.lat],
+      title: place.name,
+      content: createMarkerContent(place.typecode, true, place.name),
+      offset: new AMap.Pixel(-15, -38)
+    });
+    marker.setMap(map);
+    marker.on('click', () => goToPlace(place));
+    diaryMarkers.push(marker);
   });
-  markers = [];
 };
 
-// 保存收藏到本地存储
-const saveFavorites = () => {
-  localStorage.setItem('travel_favorites', JSON.stringify(favorites.value));
-};
-
-// 从本地存储加载收藏
-const loadFavorites = () => {
-  const saved = localStorage.getItem('travel_favorites');
-  if (saved) {
-    try {
-      favorites.value = JSON.parse(saved);
-    } catch (e) {
-      console.error('加载收藏失败:', e);
-      favorites.value = [];
-    }
+const goToPlace = (place) => {
+  if (place.lng && place.lat) {
+    map.setCenter([place.lng, place.lat]);
+    map.setZoom(16);
+    showMarkerInfo({
+      id: place.poi_id, name: place.name, address: place.address,
+      location: { lng: place.lng, lat: place.lat },
+      tel: place.tel, type: place.type, typecode: place.typecode
+    });
   }
 };
+
+const isPlaceInDiary = (marker) => {
+  if (!marker) return false;
+  return props.places.some(p => p.poi_id === marker.id);
+};
+
+const getPlaceDbId = (marker) => {
+  const found = props.places.find(p => p.poi_id === marker.id);
+  return found ? found.id : null;
+};
+
+const getPlaceTypecode = (marker) => {
+  const found = props.places.find(p => p.poi_id === marker.id);
+  return found ? found.typecode : '';
+};
+
+const markerTypeOptions = [
+  { code: '', label: '默认', color: defaultDiaryColor },
+  { code: '05', label: '餐饮', color: typeColors['05'] },
+  { code: '06', label: '购物', color: typeColors['06'] },
+  { code: '10', label: '住宿', color: typeColors['10'] },
+  { code: '11', label: '风景', color: typeColors['11'] },
+  { code: '15', label: '交通', color: typeColors['15'] },
+];
+
+const buildTypePreviewSvg = (code) => {
+  const icon = code ? (svgIcons[code] || defaultIcon) : defaultIcon;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style="color:currentColor">${icon}</svg>`;
+};
+markerTypeOptions.forEach(opt => { opt.preview = buildTypePreviewSvg(opt.code); });
+
+watch([() => props.places, mapReady], () => {
+  if (mapReady.value) renderDiaryMarkers();
+}, { deep: true });
 
 onUnmounted(() => {
-  map?.destroy();
+  if (map) { map.destroy(); map = null; }
 });
 </script>
 
 <style scoped>
 .map-container {
-  position: relative;
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  height: 100%;
+  position: relative;
 }
 
 #amap {
@@ -393,99 +394,235 @@ onUnmounted(() => {
   height: 100%;
 }
 
-/* 搜索面板样式 */
-.search-panel {
+.sidebar {
   position: absolute;
-  top: 20px;
-  left: 20px;
-  width: 400px;
-  z-index: 1000;
+  top: 70px;
+  left: 16px;
+  width: 320px;
+  max-height: calc(100% - 86px);
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  z-index: 100;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  overflow-y: auto;
+}
+
+.sidebar.collapsed {
+  transform: translateX(-20px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-content {
+  padding: 0;
+  position: relative;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #666;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.back-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.sidebar-diary-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #999;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.sidebar-close-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.sidebar-section {
+  margin-bottom: 10px;
+  padding: 0 16px;
+}
+
+.sidebar-section:first-child {
+  padding-top: 14px;
+}
+
+.sidebar-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0;
+}
+
+.sidebar-section-title h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.sidebar-section-title.clickable { cursor: pointer; }
+
+.favorites-toggle {
+  font-size: 12px;
+  color: #999;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: #eee;
+  margin: 10px 16px;
 }
 
 .search-box {
   display: flex;
-  padding: 12px;
   gap: 8px;
 }
 
-#search_input {
+.search-box input {
   flex: 1;
-  padding: 12px 16px;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
   font-size: 14px;
   outline: none;
-  transition: all 0.3s ease;
 }
 
-#search_input:focus {
-  border-color: #4285f4;
-  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
-}
+.search-box input:focus { border-color: #2ecc71; }
 
 .search-btn {
-  padding: 12px 16px;
-  background: #4285f4;
-  color: white;
+  padding: 8px 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
+  background: #2ecc71;
+  color: white;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 16px;
 }
 
-.search-btn:hover {
-  background: #3367d6;
-  transform: translateY(-1px);
-}
-
-/* 搜索结果样式 */
 .search-results {
   max-height: 300px;
   overflow-y: auto;
-  border-top: 1px solid #e1e5e9;
+  margin: 10px -16px 0;
+  padding: 0 16px;
 }
 
 .search-result-item {
-  padding: 12px 16px;
-  cursor: pointer;
+  padding: 10px;
   border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.2s ease;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.search-result-item:hover {
-  background-color: #f8f9fa;
+.search-result-item:hover { background: #f9f9f9; }
+
+.result-name { font-size: 14px; font-weight: 500; color: #333; }
+.result-address { font-size: 12px; color: #999; margin-top: 2px; }
+
+.favorites-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0 -16px;
+  padding: 0 16px;
 }
 
-.search-result-item:last-child {
-  border-bottom: none;
+.favorite-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.result-name {
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 4px;
+.favorite-item:hover { background: #f9f9f9; }
+.favorite-name { font-size: 14px; color: #333; }
+.favorite-address { font-size: 12px; color: #999; margin-top: 2px; }
+.no-favorites { text-align: center; color: #999; padding: 20px 0; font-size: 13px; }
+
+.remove-favorite {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
 }
 
-.result-address {
-  font-size: 12px;
-  color: #666;
+.remove-favorite:hover { opacity: 1; }
+
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 70px;
+  left: 16px;
+  z-index: 99;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 标记信息面板样式 */
+.sidebar-toggle-btn.sidebar-open { opacity: 0; pointer-events: none; }
+
 .marker-info-panel {
   position: absolute;
-  top: 20px;
+  top: 70px;
   right: 20px;
   width: 320px;
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  z-index: 100;
   overflow: hidden;
 }
 
@@ -493,325 +630,90 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  padding: 16px;
+  border-bottom: 1px solid #eee;
 }
 
-.marker-info-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
+.marker-info-header h3 { margin: 0; font-size: 16px; color: #333; }
 
 .close-btn {
   background: none;
   border: none;
-  color: white;
-  font-size: 24px;
+  font-size: 20px;
   cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s ease;
+  color: #999;
 }
 
-.close-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
+.marker-info-content { padding: 16px; }
+.marker-info-content p { margin: 6px 0; font-size: 13px; color: #666; }
 
-.marker-info-content {
-  padding: 20px;
-}
-
-.marker-info-content p {
-  margin: 8px 0;
-  color: #333;
-  line-height: 1.5;
-}
-
-.marker-actions {
-  display: flex;
-  gap: 10px;
-  margin: 16px 0;
-}
+.marker-actions { margin-top: 12px; display: flex; gap: 8px; }
 
 .action-btn {
   flex: 1;
-  padding: 10px 16px;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
   background: white;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  font-size: 13px;
+  transition: all 0.2s;
 }
 
-.action-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.action-btn:hover { background: #f9f9f9; }
+.action-btn.active { background: #2ecc71; color: white; border-color: #2ecc71; }
+
+.marker-type-section { margin-top: 10px; }
+.marker-type-label { margin-bottom: 6px !important; }
+
+.marker-type-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.favorite-btn.active {
-  background: #ff6b6b;
-  border-color: #ff6b6b;
-  color: white;
-}
-
-.note-btn {
-  background: #4ecdc4;
-  border-color: #4ecdc4;
-  color: white;
-}
-
-.marker-note {
-  margin-top: 16px;
-  padding: 12px;
-  background: #f8f9fa;
+.marker-type-btn {
+  --hover-color: #888;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
-  border-left: 4px solid #4285f4;
-}
-
-.marker-note p {
-  margin: 4px 0 0 0;
-  font-style: italic;
-  color: #555;
-}
-
-/* 收藏面板样式 */
-.favorites-panel {
-  position: absolute;
-  bottom: 20px;
-  left: 20px;
-  width: 300px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  transition: all 0.3s ease;
-  max-height: 60px;
-  overflow: hidden;
-}
-
-.favorites-panel.open {
-  max-height: 400px;
-}
-
-.favorites-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  border: 2px solid #e0e0e0;
+  background: #fff;
   cursor: pointer;
-}
-
-.favorites-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.toggle-btn {
-  background: none;
-  border: none;
-  color: #666;
-  font-size: 12px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-}
-
-.toggle-btn:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-.favorites-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.favorite-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.favorite-item:hover {
-  background-color: #f8f9fa;
-}
-
-.favorite-item:last-child {
-  border-bottom: none;
-}
-
-.favorite-name {
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 2px;
-}
-
-.favorite-address {
-  font-size: 12px;
-  color: #666;
-  flex: 1;
-}
-
-.remove-favorite {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-  margin-left: 8px;
-}
-
-.remove-favorite:hover {
-  background-color: #ffebee;
-}
-
-.no-favorites {
-  padding: 20px;
-  text-align: center;
-  color: #999;
-  font-style: italic;
-}
-
-
-/* 笔记模态框样式 */
-.note-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  color: #888;
+  transition: all 0.2s;
 }
 
-.note-modal {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  width: 90%;
-  max-width: 500px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+.marker-type-btn:hover {
+  border-color: var(--hover-color);
+  color: var(--hover-color);
 }
 
-.note-modal h3 {
-  margin: 0 0 16px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
+.marker-type-btn.active {
+  color: #fff;
 }
 
-.note-modal textarea {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-  resize: vertical;
-  outline: none;
-  transition: border-color 0.3s ease;
-}
-
-.note-modal textarea:focus {
-  border-color: #4285f4;
-}
-
-.note-modal-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-  justify-content: flex-end;
-}
-
-.cancel-btn, .save-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.cancel-btn {
-  background: #f5f5f5;
-  color: #666;
-}
-
-.cancel-btn:hover {
-  background: #e0e0e0;
-}
-
-.save-btn {
-  background: #4285f4;
-  color: white;
-}
-
-.save-btn:hover {
-  background: #3367d6;
-  transform: translateY(-1px);
-}
-
-/* 响应式设计 */
 @media (max-width: 768px) {
-  .search-panel {
-    width: calc(100% - 40px);
-    left: 20px;
-    right: 20px;
+  .sidebar {
+    width: calc(100% - 32px);
+    left: 16px;
   }
-  
+  .sidebar-toggle-btn { left: 16px; }
   .marker-info-panel {
     width: calc(100% - 40px);
-    left: 20px;
-    right: 20px;
-    top: auto;
-    bottom: 100px;
-  }
-  
-  .favorites-panel {
-    width: calc(100% - 40px);
-    bottom: 20px;
+    left: 20px; right: 20px; top: auto; bottom: 20px;
   }
 }
 
-/* 滚动条样式 */
 .search-results::-webkit-scrollbar,
-.favorites-list::-webkit-scrollbar {
-  width: 6px;
-}
-
+.favorites-list::-webkit-scrollbar { width: 6px; }
 .search-results::-webkit-scrollbar-track,
-.favorites-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
+.favorites-list::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
 .search-results::-webkit-scrollbar-thumb,
-.favorites-list::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
+.favorites-list::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
 .search-results::-webkit-scrollbar-thumb:hover,
-.favorites-list::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
+.favorites-list::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
 </style>
