@@ -1,6 +1,6 @@
 import { initUser } from '@/utils/userUtils'
 
-export default defineNuxtPlugin((nuxtApp) => {
+export default defineNuxtPlugin(async () => {
   // Initialize user session on client start
-  initUser()
+  await initUser()
 })
