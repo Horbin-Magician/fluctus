@@ -7,8 +7,9 @@
           <span class="date">{{ article.date }}</span>
           <span v-if="article.categories" class="category">{{ article.categories }}</span>
         </div>
-        <div class="excerpt markdown-body" v-if="article.excerpt" v-html="article.excerpt"></div>
-        <div class="tags" v-if="article.tags && article.tags.length">
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div v-if="article.excerpt" class="excerpt markdown-body" v-html="article.excerpt"/>
+        <div v-if="article.tags && article.tags.length" class="tags">
           <span v-for="tag in article.tags" :key="tag" class="tag">#{{ tag }}</span>
         </div>
       </div>
@@ -86,6 +87,7 @@ h1 {
   line-height: 1.6;
   margin-bottom: 15px;
   display: -webkit-box;
+  line-clamp: 3;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
