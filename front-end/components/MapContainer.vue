@@ -115,8 +115,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { ref, onMounted, onUnmounted, watch, createVNode, render as vueRender } from "vue";
 import AMapLoader from "@amap/amap-jsapi-loader";
+import {
+  Restaurant as RestaurantIcon,
+  Cart as CartIcon,
+  Bed as BedIcon,
+  Leaf as LeafIcon,
+  Bus as BusIcon,
+  Location as LocationIcon
+} from "@vicons/ionicons5";
+
+// 将 xicons Vue 组件渲染为 SVG innerHTML 字符串
+const renderIconSvgContent = (iconComp) => {
+  const container = document.createElement('div');
+  const vnode = createVNode(iconComp);
+  vueRender(vnode, container);
+  const svg = container.querySelector('svg');
+  return svg ? svg.innerHTML : '';
+};
 
 const props = defineProps({
   places: { type: Array, default: () => [] },
@@ -220,21 +237,15 @@ const addSearchMarkers = (places) => {
   });
 };
 
-// 高德 POI typecode 前两位对应大类
-const svgIcons = {
-  // 餐饮 05xxxx
-  '05': '<path d="M8 2v4c0 1.1.9 2 2 2h1v12h2V8h1c1.1 0 2-.9 2-2V2h-2v4h-1V2h-2v4h-1V2H8z" fill="currentColor"/>',
-  // 购物 06xxxx
-  '06': '<path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 14H6V8h2v1c0 .55.45 1 1 1s1-.45 1-1V8h4v1c0 .55.45 1 1 1s1-.45 1-1V8h2v10z" fill="currentColor"/>',
-  // 住宿 10xxxx
-  '10': '<path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V6H1v14h2v-3h18v3h2v-8c0-2.21-1.79-4-4-4z" fill="currentColor"/>',
-  // 风景名胜 11xxxx
-  '11': '<path d="M14 6l-3.75 5 2.85 3.8-1.6 1.2C9.81 13.75 7 10 7 10l-6 8h22L14 6z" fill="currentColor"/>',
-  // 交通 15xxxx
-  '15': '<path d="M12 2C8 2 4 2.5 4 6v9.5c0 1.38 1.12 2.5 2.5 2.5L5 19.5V20h2l1.5-1.5h7L17 20h2v-.5L17.5 18c1.38 0 2.5-1.12 2.5-2.5V6c0-3.5-4-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM18 11H6V6h12v5z" fill="currentColor"/>',
+// 高德 POI typecode 前两位对应大类，使用 xicons 组件
+const iconComponents = {
+  '05': RestaurantIcon, // 餐饮
+  '06': CartIcon,       // 购物
+  '10': BedIcon,        // 住宿
+  '11': LeafIcon,       // 风景名胜
+  '15': BusIcon,        // 交通
 };
-
-const defaultIcon = '<path d="M12 2C8.13 2 5 5.13 5 9c0 4.17 4.42 9.92 6.24 12.11.4.48 1.13.48 1.52 0C14.58 18.92 19 13.17 19 9c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>';
+const defaultIconComponent = LocationIcon;
 
 // 每个类别对应的颜色
 const typeColors = {
@@ -253,9 +264,9 @@ const getColorByTypecode = (typecode) => {
 };
 
 const getIconByTypecode = (typecode) => {
-  if (!typecode) return defaultIcon;
-  const prefix = typecode.substring(0, 2);
-  return svgIcons[prefix] || defaultIcon;
+  const prefix = typecode ? typecode.substring(0, 2) : '';
+  const comp = iconComponents[prefix] || defaultIconComponent;
+  return renderIconSvgContent(comp);
 };
 
 const createMarkerContent = (typecode, isDiary, name) => {
@@ -271,7 +282,7 @@ const createMarkerContent = (typecode, isDiary, name) => {
 
   const iconContainer = document.createElement('div');
   iconContainer.style.cssText = 'transform:rotate(45deg);display:flex;align-items:center;justify-content:center;';
-  iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="color:#fff">${iconSvg}</svg>`;
+  iconContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512" style="color:#fff">${iconSvg}</svg>`;
 
   pin.appendChild(iconContainer);
   wrapper.appendChild(pin);
@@ -368,8 +379,9 @@ const markerTypeOptions = [
 ];
 
 const buildTypePreviewSvg = (code) => {
-  const icon = code ? (svgIcons[code] || defaultIcon) : defaultIcon;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style="color:currentColor">${icon}</svg>`;
+  const comp = code ? (iconComponents[code] || defaultIconComponent) : defaultIconComponent;
+  const innerSvg = renderIconSvgContent(comp);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512" style="color:currentColor">${innerSvg}</svg>`;
 };
 markerTypeOptions.forEach(opt => { opt.preview = buildTypePreviewSvg(opt.code); });
 
