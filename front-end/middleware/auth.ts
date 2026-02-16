@@ -1,8 +1,8 @@
 import { checkLoginPromise } from '@/utils/userUtils'
 import { useMessage } from 'naive-ui'
 
-export default defineNuxtRouteMiddleware(async (to, from) => {
-  if (process.server) return
+export default defineNuxtRouteMiddleware(async () => {
+  if (import.meta.server) return
 
   const isLogged = await checkLoginPromise()
   if (!isLogged) {
