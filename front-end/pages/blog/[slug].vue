@@ -197,6 +197,7 @@ const handleCopy = async (event) => {
   min-height: 100vh;
   border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid var(--color-border);
 }
 
 .toc-sidebar {
@@ -218,15 +219,13 @@ const handleCopy = async (event) => {
 .toc-content {
   position: sticky;
   top: 100px;
-  /* background: var(--color-background); Remove bg so marker can be seen if behind? Or put marker inside */
-  /* Actually keep bg but ensure marker is visible. Relative pos needed for marker */
   background: var(--color-background);
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  border: 1px solid var(--color-border);
   max-height: calc(100vh - 120px);
   overflow-y: auto;
-  position: sticky; /* Repeated in search block, keeping it safe */
 }
 
 .active-marker {
@@ -245,7 +244,7 @@ const handleCopy = async (event) => {
   color: var(--color-text);
   font-weight: 600;
   padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .toc-content ul {
@@ -261,7 +260,7 @@ const handleCopy = async (event) => {
 
 .toc-content a {
   text-decoration: none;
-  color: #666;
+  color: var(--color-text-sub);
   font-size: 0.9em;
   transition: all 0.2s;
   display: block;
@@ -290,7 +289,7 @@ const handleCopy = async (event) => {
 .article-header {
   margin-bottom: 40px;
   text-align: center;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border);
   padding-bottom: 20px;
 }
 
@@ -301,7 +300,7 @@ const handleCopy = async (event) => {
 }
 
 .meta {
-  color: #666;
+  color: var(--color-text-sub);
   margin-bottom: 10px;
   display: flex;
   justify-content: center;
@@ -345,7 +344,7 @@ const handleCopy = async (event) => {
 }
 
 :deep(.markdown-body h2) {
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--color-border);
     padding-bottom: 0.3em;
 }
 
@@ -457,8 +456,8 @@ const handleCopy = async (event) => {
 :deep(.markdown-body blockquote) {
     margin: 0 0 20px 0;
     padding: 0 1em;
-    color: #6a737d;
-    border-left: 0.25em solid #dfe2e5;
+    color: var(--color-text-sub);
+    border-left: 0.25em solid var(--color-border);
 }
 
 :deep(.markdown-body ul),
@@ -476,6 +475,6 @@ const handleCopy = async (event) => {
 .loading {
     text-align: center;
     padding: 50px;
-    color: #666;
+    color: var(--color-text-sub);
 }
 </style>

@@ -52,11 +52,11 @@ h1 {
 .article-card {
   padding: 20px;
   border-radius: 12px;
-  background: var(--color-background);
+  background: var(--color-background-soft);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border);
 }
 
 .article-card:hover {
@@ -75,13 +75,13 @@ h1 {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #666;
+  color: var(--color-text-sub);
   font-size: 0.9em;
   margin-bottom: 10px;
 }
 
 .excerpt {
-  color: #555;
+  color: var(--color-text-sub);
   font-size: 1em;
   line-height: 1.6;
   margin-bottom: 15px;

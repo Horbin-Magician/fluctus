@@ -368,6 +368,7 @@ onMounted(() => {
   padding: 24px;
   transition: all 0.3s ease;
   position: relative;
+  border: 1px solid var(--color-border);
 }
 
 /* Header */
@@ -633,10 +634,6 @@ onMounted(() => {
   z-index: 100;
   border-radius: 20px;
   animation: fadeIn 0.2s ease;
-}
-
-.dark-mode .date-picker-modal {
-  background: rgba(0, 0, 0, 0.6);
 }
 
 .date-picker-content {

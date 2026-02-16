@@ -259,7 +259,7 @@ onMounted(() => {
 
 @keyframes blink {
   50% {
-    border-color: black;
+    border-color: var(--color-text);
   }
 }
 

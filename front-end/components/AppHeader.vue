@@ -128,8 +128,9 @@ header {
   border-radius: 20px;
   display: flex;
   justify-content: space-between;
+  border: 1px solid var(--color-border);
   background-color: var(--color-background);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px var(--color-shadow);
   z-index: 2;
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
