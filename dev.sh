@@ -13,11 +13,13 @@ cleanup() {
 
 trap cleanup SIGINT SIGTERM
 
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 echo "Starting back-end (Flask :5000)..."
-cd back-end && uv run python application.py &
+(cd "$ROOT_DIR/back-end" && uv run python application.py) &
 
 echo "Starting front-end (Nuxt :3000)..."
-cd front-end && yarn dev &
+(cd "$ROOT_DIR/front-end" && yarn dev) &
 
 echo ""
 echo "Both servers running. Press Ctrl+C to stop all."
