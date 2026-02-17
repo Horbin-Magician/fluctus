@@ -422,10 +422,8 @@ const calendar = {
             s = '\u521d\u5341'; break;
         case 20:
             s = '\u4e8c\u5341'; break;
-            break;
         case 30:
             s = '\u4e09\u5341'; break;
-            break;
         default :
             s = this.nStr2[Math.floor(d/10)];
             s += this.nStr1[d%10];
@@ -464,16 +462,17 @@ const calendar = {
             return -1;
         }
         //未传参  获得当天
+        var objDate;
         if(!y) {
-            var objDate = new Date();
+            objDate = new Date();
         }else {
-            var objDate = new Date(y,parseInt(m)-1,d)
+            objDate = new Date(y,parseInt(m)-1,d)
         }
         var i, leap=0, temp=0;
         //修正ymd参数
-        var y = objDate.getFullYear(),
-            m = objDate.getMonth()+1,
-            d = objDate.getDate();
+        y = objDate.getFullYear()
+        m = objDate.getMonth()+1
+        d = objDate.getDate()
         var offset = (Date.UTC(objDate.getFullYear(),objDate.getMonth(),objDate.getDate()) - Date.UTC(1900,0,31))/86400000;
         for(i=1900; i<2101 && offset>0; i++) {
             temp    = this.lYearDays(i);
@@ -498,7 +497,7 @@ const calendar = {
         }
         //农历年
         var year   = i;
-        var leap   = this.leapMonth(i); //闰哪个月
+        leap   = this.leapMonth(i); //闰哪个月
         var isLeap = false;
   
         //效验闰月
@@ -613,10 +612,8 @@ const calendar = {
         y = parseInt(y)
         m = parseInt(m)
         d = parseInt(d)
-        var isLeapMonth = !!isLeapMonth;
-        var leapOffset  = 0;
+        isLeapMonth = !!isLeapMonth;
         var leapMonth   = this.leapMonth(y);
-        var leapDay     = this.leapDays(y);
         if(isLeapMonth&&(leapMonth!=m)) {return -1;}//传参要求计算该闰月公历 但该年得出的闰月与传参的月份并不同
         if(y==2100&&m==12&&d>1 || y==1900&&m==1&&d<31) {return -1;}//超出了最大极限值
         var day  = this.monthDays(y,m);
@@ -630,11 +627,11 @@ const calendar = {
   
         //计算农历的时间差
         var offset = 0;
-        for(var i=1900;i<y;i++) {
+        for(var i=1900; i<y; i++) {
             offset+=this.lYearDays(i);
         }
-        var leap = 0,isAdd= false;
-        for(var i=1;i<m;i++) {
+        var leap = 0, isAdd= false;
+        for(i=1; i<m; i++) {
             leap = this.leapMonth(y);
             if(!isAdd) {//处理闰月
                 if(leap<=i && leap>0) {
