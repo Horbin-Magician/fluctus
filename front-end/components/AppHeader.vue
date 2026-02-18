@@ -2,11 +2,11 @@
 <template>
   <header :class="{ 'header-hidden': isHeaderHidden }">
     <div class="logo">
-      <n-dropdown v-if="isLoggedIn" :options="dropdownOptions" trigger="hover"
-        @select="onDropdownSelect">
-        <svg class="icon" aria-hidden="true">
-          <use xlink:href="#icon-logo" />
-        </svg>
+      <n-dropdown v-if="isLoggedIn" :options="dropdownOptions" trigger="hover" show-arrow
+          @select="onDropdownSelect">
+          <svg class="icon" aria-hidden="true">
+            <use xlink:href="#icon-logo" />
+          </svg>
       </n-dropdown>
       <svg v-else class="icon" aria-hidden="true" @click="showLoginModal = true">
         <use xlink:href="#icon-logo" />
@@ -36,8 +36,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import { NModal, NDropdown, useMessage } from 'naive-ui'
+import { h, ref, reactive, onMounted, onUnmounted } from 'vue'
+import { NModal, NDropdown, NIcon, useMessage } from 'naive-ui'
+import { SettingsOutline, LogOutOutline } from '@vicons/ionicons5'
 import '@/assets/icons/iconfont'
 import { userlogin, checkLogin, userlogout, addUpdateFun } from '@/utils/userUtils';
 import storageUtils from '@/utils/storageUtils';
@@ -68,9 +69,21 @@ const user_key = ref('')
 const isHeaderHidden = ref(false)
 const isLoggedIn = ref(checkLogin())
 
+function renderIcon(icon) {
+  return () => h(NIcon, null, { default: () => h(icon) })
+}
+
 const dropdownOptions = [
-  { label: '后台管理', key: 'admin' },
-  { label: '注销', key: 'logout' }
+  {
+    label: '后台管理',
+    key: 'admin',
+    icon: renderIcon(SettingsOutline)
+  },
+  {
+    label: '注销',
+    key: 'logout',
+    icon: renderIcon(LogOutOutline)
+  }
 ]
 
 function handleScroll() {
