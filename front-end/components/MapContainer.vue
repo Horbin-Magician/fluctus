@@ -67,7 +67,7 @@
               :key="`day-${day}`"
               class="route-day-group"
               :class="{ 'is-drag-over': dragOverDay === day }"
-              @dragover.prevent="onDayDragOver(day)"
+              @dragover.prevent="onDayDragOver(day, $event)"
               @drop="onDayDrop(day)"
             >
               <div class="route-day-title">第 {{ day }} 天</div>
@@ -77,11 +77,15 @@
               >
                 <div
                   class="favorite-item"
-                  :class="{ 'is-dragging': draggingPlaceId === place.id }"
+                  :class="{
+                    'is-dragging': draggingPlaceId === place.id,
+                    'drop-before': isDropIndicator(day, place.id, 'before'),
+                    'drop-after': isDropIndicator(day, place.id, 'after')
+                  }"
                   draggable="true"
                   @dragstart="onPlaceDragStart(place.id)"
                   @dragend="onPlaceDragEnd"
-                  @dragover.prevent="onPlaceDragOver(day, place.id)"
+                  @dragover.prevent.stop="onPlaceDragOver(day, place.id, $event)"
                   @drop.stop="onPlaceDrop(day, place.id)"
                   @click="goToPlace(place)"
                 >
@@ -96,10 +100,18 @@
                 <div
                   v-if="index < getPlacesByDay(day).length - 1"
                   class="route-leg"
+                  @dragover.prevent.stop="onRouteLegDragOver(day, index)"
+                  @drop.stop="onRouteLegDrop(day, index)"
                 >
                   {{ getAdjacentDrivingText(day, index) }}
                 </div>
               </template>
+              <div
+                v-if="isDropIndicator(day, null, 'end')"
+                class="route-drop-indicator"
+              >
+                <span>插入末尾</span>
+              </div>
               <div v-if="getPlacesByDay(day).length === 0" class="route-day-empty">拖拽地点到这一天</div>
             </div>
             <button class="route-add-day-btn" @click="addRouteDay">+ 新增一天</button>
@@ -243,7 +255,10 @@ const searchSectionRef = ref(null);
 const localPlaces = ref([]);
 const draggingPlaceId = ref(null);
 const dragOverDay = ref(null);
+const dropIndicator = ref({ day: null, placeId: null, position: '' });
 const manualDayCount = ref(1);
+const DROP_INDICATOR_DEADZONE_PX = 14;
+const DROP_DAY_APPEND_TRIGGER_PX = 18;
 
 let map = null;
 let AMap = null;
@@ -733,14 +748,65 @@ const onPlaceDragStart = (placeId) => {
 const onPlaceDragEnd = () => {
   draggingPlaceId.value = null;
   dragOverDay.value = null;
+  dropIndicator.value = { day: null, placeId: null, position: '' };
 };
 
-const onDayDragOver = (day) => {
+const onDayDragOver = (day, event) => {
+  if (!draggingPlaceId.value) return;
   dragOverDay.value = day;
+
+  const dayPlaces = getPlacesByDay(day);
+  if (dayPlaces.length === 0) {
+    dropIndicator.value = { day, placeId: null, position: 'end' };
+    return;
+  }
+
+  const container = event?.currentTarget;
+  if (!(container instanceof HTMLElement)) {
+    dropIndicator.value = { day, placeId: dayPlaces[dayPlaces.length - 1].id, position: 'after' };
+    return;
+  }
+
+  const itemElements = Array.from(container.querySelectorAll('.favorite-item'));
+  if (itemElements.length === 0) {
+    dropIndicator.value = { day, placeId: null, position: 'end' };
+    return;
+  }
+
+  const y = event.clientY;
+  const firstRect = itemElements[0].getBoundingClientRect();
+  const lastRect = itemElements[itemElements.length - 1].getBoundingClientRect();
+
+  if (y < firstRect.top) {
+    dropIndicator.value = { day, placeId: dayPlaces[0].id, position: 'before' };
+    return;
+  }
+
+  if (y > lastRect.bottom + DROP_DAY_APPEND_TRIGGER_PX) {
+    dropIndicator.value = { day, placeId: null, position: 'end' };
+    return;
+  }
+
+  for (let index = 0; index < itemElements.length; index += 1) {
+    const rect = itemElements[index].getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+    if (y <= midpoint) {
+      dropIndicator.value = { day, placeId: dayPlaces[index].id, position: 'before' };
+      return;
+    }
+  }
+
+  dropIndicator.value = { day, placeId: dayPlaces[dayPlaces.length - 1].id, position: 'after' };
 };
 
 const onDayDrop = (targetDay) => {
   if (!draggingPlaceId.value) return;
+  const preview = dropIndicator.value;
+  if (preview.day === targetDay && preview.placeId) {
+    onPlaceDrop(targetDay, preview.placeId);
+    return;
+  }
+
   const draggedPlace = localPlaces.value.find((place) => place.id === draggingPlaceId.value);
   if (!draggedPlace) return;
 
@@ -758,8 +824,26 @@ const onDayDrop = (targetDay) => {
   onPlaceDragEnd();
 };
 
-const onPlaceDragOver = (day) => {
+const onPlaceDragOver = (day, targetPlaceId, event) => {
+  if (!draggingPlaceId.value) return;
   dragOverDay.value = day;
+  const target = event?.currentTarget;
+  if (!(target instanceof HTMLElement)) {
+    dropIndicator.value = { day, placeId: targetPlaceId, position: 'before' };
+    return;
+  }
+  const rect = target.getBoundingClientRect();
+  const middleY = rect.top + rect.height / 2;
+  const distanceToMiddle = event.clientY - middleY;
+  const absDistance = Math.abs(distanceToMiddle);
+  const lastIndicator = dropIndicator.value;
+
+  let position = distanceToMiddle > 0 ? 'after' : 'before';
+  const isSameTarget = lastIndicator.day === day && lastIndicator.placeId === targetPlaceId;
+  if (isSameTarget && absDistance <= DROP_INDICATOR_DEADZONE_PX && (lastIndicator.position === 'before' || lastIndicator.position === 'after')) {
+    position = lastIndicator.position;
+  }
+  dropIndicator.value = { day, placeId: targetPlaceId, position };
 };
 
 const onPlaceDrop = (targetDay, targetPlaceId) => {
@@ -774,7 +858,16 @@ const onPlaceDrop = (targetDay, targetPlaceId) => {
     .filter((place) => Number(place.routeDay) === Number(targetDay))
     .sort((a, b) => Number(a.routeOrder) - Number(b.routeOrder));
   const insertIndex = targetDayPlaces.findIndex((place) => place.id === targetPlaceId);
-  const insertAt = insertIndex >= 0 ? insertIndex : targetDayPlaces.length;
+  let insertAt = insertIndex >= 0 ? insertIndex : targetDayPlaces.length;
+  const preview = dropIndicator.value;
+  if (
+    preview.day === targetDay
+    && preview.placeId === targetPlaceId
+    && preview.position === 'after'
+    && insertAt < targetDayPlaces.length
+  ) {
+    insertAt += 1;
+  }
   targetDayPlaces.splice(insertAt, 0, { ...draggedPlace, routeDay: targetDay });
 
   const rebuilt = baseList.map((place) => ({ ...place }));
@@ -790,6 +883,37 @@ const onPlaceDrop = (targetDay, targetPlaceId) => {
 
   commitRouteChanges(rebuilt);
   onPlaceDragEnd();
+};
+
+const onRouteLegDragOver = (day, index) => {
+  if (!draggingPlaceId.value) return;
+  dragOverDay.value = day;
+  const dayPlaces = getPlacesByDay(day);
+  const previousPlace = dayPlaces[index];
+  if (!previousPlace?.id) {
+    dropIndicator.value = { day, placeId: null, position: 'end' };
+    return;
+  }
+  dropIndicator.value = { day, placeId: previousPlace.id, position: 'after' };
+};
+
+const onRouteLegDrop = (day, index) => {
+  if (!draggingPlaceId.value) return;
+  const dayPlaces = getPlacesByDay(day);
+  const previousPlace = dayPlaces[index];
+  if (!previousPlace?.id) {
+    onDayDrop(day);
+    return;
+  }
+  dropIndicator.value = { day, placeId: previousPlace.id, position: 'after' };
+  onPlaceDrop(day, previousPlace.id);
+};
+
+const isDropIndicator = (day, placeId, position) => {
+  if (!draggingPlaceId.value) return false;
+  return dropIndicator.value.day === day
+    && dropIndicator.value.placeId === placeId
+    && dropIndicator.value.position === position;
 };
 
 const addRouteDay = () => {
@@ -1314,6 +1438,42 @@ onUnmounted(() => {
   color: var(--color-text-sub-sub);
 }
 
+.route-drop-indicator {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 3px 2px 8px;
+  height: 12px;
+}
+
+.route-drop-indicator::before,
+.route-drop-indicator::after {
+  content: '';
+  flex: 1;
+  border-top: 2px solid var(--color-primary);
+  opacity: 0.9;
+}
+
+.route-drop-indicator::before {
+  margin-right: 6px;
+}
+
+.route-drop-indicator::after {
+  margin-left: 6px;
+}
+
+.route-drop-indicator span {
+  flex: 0 0 auto;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--color-primary);
+  background: var(--color-background-soft);
+  padding: 0 4px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
 .route-add-day-btn {
   width: 100%;
   border: 1px dashed var(--color-border);
@@ -1332,6 +1492,7 @@ onUnmounted(() => {
 }
 
 .favorite-item {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1346,6 +1507,26 @@ onUnmounted(() => {
 
 .favorite-item.is-dragging {
   opacity: 0.5;
+}
+
+.favorite-item.drop-before::before,
+.favorite-item.drop-after::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  height: 0;
+  border-top: 2px solid var(--color-primary);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.favorite-item.drop-before::before {
+  top: -5px;
+}
+
+.favorite-item.drop-after::after {
+  bottom: -5px;
 }
 
 .favorite-item:hover {
