@@ -57,9 +57,15 @@ const navLinks = computed(() => Object.entries(router_items)
   .filter(([_, v]) => v.shown)
   .map(([_, value]) => [value.path.slice(1)]))
 const now_page = computed(() => route.path.slice(1).split('/')[0])
+const isMobile = ref(false)
+const nav_link_width = computed(() => isMobile.value ? '56px' : '70px')
+const nav_track_width = computed(() => isMobile.value ? '40px' : '50px')
 const nav_track_left = computed(() => {
   const idx = navLinks.value.findIndex(([key]) => key === (now_page.value))
-  return `${10 + idx * 70}px`
+  const linkWidth = isMobile.value ? 56 : 70
+  const trackWidth = isMobile.value ? 40 : 50
+  const offset = (linkWidth - trackWidth) / 2
+  return `${offset + idx * linkWidth}px`
 })
 
 const showLoginModal = ref(false)
@@ -90,13 +96,20 @@ function handleScroll() {
   isHeaderHidden.value = window.scrollY > 0
 }
 
+function updateViewportState() {
+  isMobile.value = window.innerWidth <= 640
+}
+
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
+  window.addEventListener('resize', updateViewportState)
   handleScroll()
+  updateViewportState()
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('resize', updateViewportState)
 })
 
 addUpdateFun(() => {
@@ -136,7 +149,7 @@ header {
   top: 10px;
   left: 50%;
   transform: translateX(-50%) translateY(0);
-  width: 600px;
+  width: min(600px, calc(100vw - 16px));
   height: 50px;
   border-radius: 20px;
   display: flex;
@@ -171,6 +184,7 @@ header.header-hidden {
   margin-left: 20px;
   margin-right: 20px;
   transform-origin: center center;
+  flex-shrink: 0;
 }
 
 .logo :deep(> *) {
@@ -194,6 +208,7 @@ header.header-hidden {
   display: flex;
   align-items: center;
   margin-right: 20px;
+  min-width: 0;
 }
 
 .nav {
@@ -201,6 +216,7 @@ header.header-hidden {
   justify-content: center;
   height: 50px;
   position: relative;
+  min-width: 0;
 }
 
 .nav .link {
@@ -208,9 +224,12 @@ header.header-hidden {
   display: block;
   text-align: center;
   line-height: 50px;
-  width: 70px;
+  width: v-bind('nav_link_width');
   transition: all 0.2s ease;
   border-bottom: 2px solid transparent;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav .link:hover {
@@ -223,10 +242,48 @@ header.header-hidden {
   background-color: var(--color-light);
   height: 4px;
   border-radius: 2px;
-  width: 50px;
+  width: v-bind('nav_track_width');
   left: v-bind('nav_track_left');
   bottom: 0px;
   transition: .3s;
+}
+
+@media (max-width: 640px) {
+  header {
+    top: 8px;
+    height: 46px;
+    border-radius: 16px;
+  }
+
+  .logo {
+    height: 46px;
+    margin-left: 10px;
+    margin-right: 8px;
+  }
+
+  .logo svg {
+    width: 42px;
+    height: 42px;
+    margin-top: 2px;
+  }
+
+  .left-bar {
+    margin-right: 10px;
+    gap: 2px;
+  }
+
+  .nav {
+    height: 46px;
+  }
+
+  .nav .link {
+    line-height: 46px;
+    font-size: 13px;
+  }
+
+  .nav-track {
+    bottom: 1px;
+  }
 }
 
 .login {
