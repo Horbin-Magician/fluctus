@@ -34,8 +34,8 @@ onMounted(() => {
 <style scoped>
 .blog-container {
   max-width: 800px;
-  margin: 0px auto;
-  padding-top: 80px;
+  margin: 0 auto;
+  padding: 80px 16px 24px;
 }
 
 h1 {
@@ -75,6 +75,7 @@ h1 {
 .meta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   color: var(--color-text-sub);
   font-size: 0.9em;
@@ -119,5 +120,37 @@ h1 {
 .tag {
   color: var(--color-light);
   font-size: 0.85em;
+}
+
+@media (max-width: 768px) {
+  .blog-container {
+    padding-top: 72px;
+  }
+
+  .article-card {
+    padding: 16px;
+  }
+
+  .article-card h2 {
+    font-size: 1.25em;
+    line-height: 1.4;
+  }
+
+  .excerpt {
+    font-size: 0.95em;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .blog-container {
+    padding: 68px 12px 20px;
+  }
+
+  .meta {
+    font-size: 0.85em;
+    gap: 8px;
+  }
 }
 </style>

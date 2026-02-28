@@ -67,10 +67,6 @@ const updateMarker = () => {
 
   const link = container.querySelector(`a[href="#${activeHeading.value}"]`)
   if (link) {
-    // Calculate relative position
-    const containerRect = container.getBoundingClientRect()
-    const linkRect = link.getBoundingClientRect()
-    
     // Adjust logic if toc-content has padding/relative positioning
     // Since marker is inside toc-content, we want position relative to it.
     // Using offsetTop is easier if offsetParent is toc-content
@@ -187,11 +183,12 @@ const handleCopy = async (event) => {
   max-width: 800px;
   margin: 0 auto;
   position: relative;
+  padding: 0 16px;
 }
 
 .article-container {
   width: 100%;
-  margin: 30px 0;
+  margin: 80px 0;
   padding: 40px;
   background: var(--color-background);
   min-height: 100vh;
@@ -297,6 +294,7 @@ const handleCopy = async (event) => {
   font-size: 2.5em;
   margin-bottom: 20px;
   color: var(--color-text);
+  line-height: 1.3;
 }
 
 .meta {
@@ -305,6 +303,7 @@ const handleCopy = async (event) => {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
   gap: 15px;
 }
 
@@ -319,6 +318,7 @@ const handleCopy = async (event) => {
 .tags {
     display: flex;
     justify-content: center;
+  flex-wrap: wrap;
     gap: 10px;
 }
 .tag {
@@ -470,6 +470,75 @@ const handleCopy = async (event) => {
     max-width: 100%;
     border-radius: 4px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+:deep(.markdown-body table) {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  .page-wrapper {
+    padding: 0 12px;
+  }
+
+  .article-container {
+    margin: 80px 0;
+    padding: 24px 16px;
+    border-radius: 12px;
+  }
+
+  .article-header {
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+  }
+
+  .article-header h1 {
+    font-size: 1.8em;
+    margin-bottom: 14px;
+  }
+
+  .meta {
+    gap: 10px;
+    font-size: 0.9em;
+  }
+
+  :deep(.markdown-body) {
+    font-size: 1em;
+    line-height: 1.75;
+  }
+
+  :deep(.markdown-body h1),
+  :deep(.markdown-body h2),
+  :deep(.markdown-body h3) {
+    margin-top: 24px;
+    margin-bottom: 12px;
+  }
+
+  :deep(.code-header) {
+    padding: 8px 12px;
+  }
+
+  :deep(.markdown-body pre) {
+    padding: 0.875rem;
+    font-size: 0.85em;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-wrapper {
+    padding: 0 10px;
+  }
+
+  .article-container {
+    padding: 80px 14px;
+    margin: 14px 0;
+  }
+
+  .article-header h1 {
+    font-size: 1.55em;
+  }
 }
 
 .loading {
