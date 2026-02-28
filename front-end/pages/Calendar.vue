@@ -357,6 +357,8 @@ onMounted(() => {
   justify-content: center;
   align-items: flex-start;
   padding-top: 80px;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
 .calendar-card {
@@ -369,6 +371,7 @@ onMounted(() => {
   transition: all 0.3s ease;
   position: relative;
   border: 1px solid var(--color-border);
+  overflow: hidden;
 }
 
 /* Header */
@@ -394,6 +397,7 @@ onMounted(() => {
   padding: 4px 8px;
   border-radius: 12px;
   transition: all 0.2s;
+  min-height: 36px;
 }
 
 .date-btn:hover {
@@ -436,6 +440,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .icon-btn:hover {
@@ -480,7 +485,6 @@ onMounted(() => {
 }
 
 .day-cell {
-  aspect-ratio: 1;
   border-radius: 12px;
   padding: 6px;
   cursor: pointer;
@@ -490,6 +494,7 @@ onMounted(() => {
   justify-content: space-between;
   border: 1px solid var(--color-border);
   background: var(--color-background-soft);
+  min-height: 72px;
 }
 
 .day-cell:hover {
@@ -597,25 +602,209 @@ onMounted(() => {
 /* Responsive */
 @media (max-width: 768px) {
   .container {
-    padding: 20px 10px;
+    padding-top: 80px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
   
   .calendar-card {
-    padding: 20px 12px;
+    border-radius: 16px;
+    padding: 16px 10px;
+  }
+
+  .header {
+    margin-bottom: 16px;
+    gap: 8px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .header-left {
+    gap: 2px;
+  }
+
+  .data-text {
+    font-size: 20px;
+    line-height: 1.2;
+  }
+
+  .header-controls {
+    margin-left: auto;
+    gap: 6px;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .icon-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .weekdays-row {
+    margin-bottom: 8px;
+  }
+
+  .weekday-cell {
+    font-size: 12px;
+    padding: 4px 0;
+  }
+
+  .days-grid,
+  .week-row {
+    gap: 3px;
+  }
+
+  .day-cell {
+    border-radius: 10px;
+    padding: 4px;
+    min-height: 58px;
   }
   
   .day-num {
-    font-size: 16px;
+    font-size: 14px;
+  }
+
+  .moon-phase,
+  .moon_mask {
+    width: 10px;
+    height: 10px;
   }
   
   .lunar-text {
-    font-size: 10px;
-    transform: scale(0.9);
-    transform-origin: left bottom;
+    font-size: 9px;
+    padding: 1px 2px;
   }
   
-  .year-text, .month-text {
-    font-size: 24px;
+  .date-picker-modal {
+    border-radius: 16px;
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  .date-picker-content {
+    width: 100%;
+    max-width: 360px;
+    border-radius: 14px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding-top: 70px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .calendar-card {
+    border-radius: 14px;
+    padding: 12px 8px;
+  }
+
+  .data-text {
+    font-size: 18px;
+  }
+
+  .date-btn {
+    padding: 2px 6px;
+    min-height: 30px;
+  }
+
+  .edit-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .header-controls {
+    gap: 4px;
+  }
+
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .weekdays-row {
+    margin-bottom: 6px;
+  }
+
+  .weekday-cell {
+    font-size: 11px;
+    padding: 3px 0;
+  }
+
+  .days-grid,
+  .week-row {
+    gap: 2px;
+  }
+
+  .day-cell {
+    border-radius: 8px;
+    padding: 3px;
+    min-height: 48px;
+  }
+
+  .day-num {
+    font-size: 13px;
+  }
+
+  .moon-phase,
+  .moon_mask {
+    width: 8px;
+    height: 8px;
+  }
+
+  .lunar-text {
+    font-size: 8px;
+    padding: 0 1px;
+  }
+
+  .date-picker-content {
+    padding: 14px;
+  }
+
+  .year-grid,
+  .month-selector {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .year-item,
+  .month-item {
+    font-size: 13px;
+    padding: 8px 0;
+    border-radius: 8px;
+  }
+
+  .year-nav {
+    padding: 4px 8px;
+  }
+
+  .range-text {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 380px) {
+  .data-text {
+    font-size: 16px;
+  }
+
+  .day-cell {
+    min-height: 44px;
+  }
+
+  .day-num {
+    font-size: 12px;
+  }
+
+  .lunar-text {
+    font-size: 7px;
   }
 }
 
