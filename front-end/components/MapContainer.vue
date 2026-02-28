@@ -71,26 +71,35 @@
               @drop="onDayDrop(day)"
             >
               <div class="route-day-title">第 {{ day }} 天</div>
-              <div
-                v-for="place in getPlacesByDay(day)"
+              <template
+                v-for="(place, index) in getPlacesByDay(day)"
                 :key="place.id"
-                class="favorite-item"
-                :class="{ 'is-dragging': draggingPlaceId === place.id }"
-                draggable="true"
-                @dragstart="onPlaceDragStart(place.id)"
-                @dragend="onPlaceDragEnd"
-                @dragover.prevent="onPlaceDragOver(day, place.id)"
-                @drop.stop="onPlaceDrop(day, place.id)"
-                @click="goToPlace(place)"
               >
-                <div class="favorite-info">
-                  <div class="favorite-name">{{ place.name }}</div>
-                  <div class="favorite-address">{{ place.address }}</div>
+                <div
+                  class="favorite-item"
+                  :class="{ 'is-dragging': draggingPlaceId === place.id }"
+                  draggable="true"
+                  @dragstart="onPlaceDragStart(place.id)"
+                  @dragend="onPlaceDragEnd"
+                  @dragover.prevent="onPlaceDragOver(day, place.id)"
+                  @drop.stop="onPlaceDrop(day, place.id)"
+                  @click="goToPlace(place)"
+                >
+                  <div class="favorite-info">
+                    <div class="favorite-name">{{ place.name }}</div>
+                    <div class="favorite-address">{{ getPlaceSubtitle(place) }}</div>
+                  </div>
+                  <button class="remove-favorite" @click.stop="$emit('remove-place', place.id)">
+                    <TrashOutline class="remove-icon" />
+                  </button>
                 </div>
-                <button class="remove-favorite" @click.stop="$emit('remove-place', place.id)">
-                  <TrashOutline class="remove-icon" />
-                </button>
-              </div>
+                <div
+                  v-if="index < getPlacesByDay(day).length - 1"
+                  class="route-leg"
+                >
+                  {{ getAdjacentDrivingText(day, index) }}
+                </div>
+              </template>
               <div v-if="getPlacesByDay(day).length === 0" class="route-day-empty">拖拽地点到这一天</div>
             </div>
             <button class="route-add-day-btn" @click="addRouteDay">+ 新增一天</button>
@@ -243,9 +252,13 @@ let autoComplete = null;
 let autocompleteTimer = null;
 let suggestionSelectionTimer = null;
 let isSelectingSuggestion = false;
+let drivingService = null;
+let drivingRouteRequestVersion = 0;
 const mapReady = ref(false);
 const searchMarkers = [];
 const diaryMarkers = [];
+const adjacentDrivingInfo = ref({});
+const adjacentDrivingLoading = ref({});
 
 const hasValidView = (view) => {
   const center = view?.center;
@@ -255,6 +268,12 @@ const hasValidView = (view) => {
     && Number.isFinite(center[0])
     && Number.isFinite(center[1])
     && Number.isFinite(zoom);
+};
+
+const getPlaceSubtitle = (place) => {
+  const description = typeof place?.description === 'string' ? place.description.trim() : '';
+  if (description) return description;
+  return place?.address || '';
 };
 
 const parseDiaryTripDays = (tripTime) => {
@@ -557,6 +576,138 @@ const getPlacesByDay = (day) => {
     });
 };
 
+const getPlaceCoordinate = (place) => {
+  const lng = Number(place?.lng);
+  const lat = Number(place?.lat);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  return [lng, lat];
+};
+
+const buildAdjacentDrivingKey = (day, fromPlace, toPlace) => {
+  const fromId = Number.isFinite(Number(fromPlace?.id)) ? Number(fromPlace.id) : String(fromPlace?.poi_id || fromPlace?.name || 'from');
+  const toId = Number.isFinite(Number(toPlace?.id)) ? Number(toPlace.id) : String(toPlace?.poi_id || toPlace?.name || 'to');
+  return `${Number(day)}:${fromId}->${toId}`;
+};
+
+const formatDrivingDuration = (seconds) => {
+  const totalSeconds = Number(seconds);
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '未知';
+  const minutes = Math.max(1, Math.round(totalSeconds / 60));
+  if (minutes < 60) return `${minutes} 分钟`;
+  const hours = Math.floor(minutes / 60);
+  const remainMinutes = minutes % 60;
+  if (remainMinutes === 0) return `${hours} 小时`;
+  return `${hours} 小时 ${remainMinutes} 分钟`;
+};
+
+const formatDrivingDistance = (meters) => {
+  const totalMeters = Number(meters);
+  if (!Number.isFinite(totalMeters) || totalMeters <= 0) return '';
+  if (totalMeters < 1000) return `${Math.round(totalMeters)} 米`;
+  const kilometers = totalMeters / 1000;
+  const text = kilometers >= 100 ? kilometers.toFixed(0) : kilometers.toFixed(1);
+  return `${text} 公里`;
+};
+
+const getAdjacentDrivingText = (day, index) => {
+  const dayPlaces = getPlacesByDay(day);
+  const fromPlace = dayPlaces[index];
+  const toPlace = dayPlaces[index + 1];
+  if (!fromPlace || !toPlace) return '';
+  const key = buildAdjacentDrivingKey(day, fromPlace, toPlace);
+  if (adjacentDrivingLoading.value[key]) return '车程计算中...';
+  const detail = adjacentDrivingInfo.value[key];
+  if (!detail) return '车程暂无数据';
+  const durationText = formatDrivingDuration(detail.duration);
+  const distanceText = formatDrivingDistance(detail.distance);
+  return distanceText ? `车程约 ${durationText} · ${distanceText}` : `车程约 ${durationText}`;
+};
+
+const ensureDrivingService = () => {
+  if (drivingService || !AMap) return Promise.resolve(drivingService);
+  return new Promise((resolve) => {
+    AMap.plugin('AMap.Driving', () => {
+      drivingService = new AMap.Driving({
+        policy: AMap.DrivingPolicy?.LEAST_TIME,
+      });
+      resolve(drivingService);
+    });
+  });
+};
+
+const queryAdjacentDrivingDetail = async (fromPlace, toPlace) => {
+  const service = await ensureDrivingService();
+  const fromCoordinate = getPlaceCoordinate(fromPlace);
+  const toCoordinate = getPlaceCoordinate(toPlace);
+  if (!service || !fromCoordinate || !toCoordinate) return null;
+  return new Promise((resolve) => {
+    service.search(fromCoordinate, toCoordinate, (status, result) => {
+      if (status !== 'complete') {
+        resolve(null);
+        return;
+      }
+      const route = result?.routes?.[0];
+      const duration = Number(route?.time);
+      const distance = Number(route?.distance);
+      if (!Number.isFinite(duration)) {
+        resolve(null);
+        return;
+      }
+      resolve({ duration, distance: Number.isFinite(distance) ? distance : 0 });
+    });
+  });
+};
+
+const refreshAdjacentDrivingInfo = async () => {
+  const routePairs = [];
+  const currentKeys = new Set();
+
+  displayDays.value.forEach((day) => {
+    const dayPlaces = getPlacesByDay(day);
+    for (let index = 0; index < dayPlaces.length - 1; index += 1) {
+      const fromPlace = dayPlaces[index];
+      const toPlace = dayPlaces[index + 1];
+      const key = buildAdjacentDrivingKey(day, fromPlace, toPlace);
+      currentKeys.add(key);
+      routePairs.push({ key, fromPlace, toPlace });
+    }
+  });
+
+  if (routePairs.length === 0) {
+    adjacentDrivingInfo.value = {};
+    adjacentDrivingLoading.value = {};
+    return;
+  }
+
+  adjacentDrivingInfo.value = Object.fromEntries(
+    Object.entries(adjacentDrivingInfo.value).filter(([key]) => currentKeys.has(key))
+  );
+  adjacentDrivingLoading.value = Object.fromEntries(
+    Object.entries(adjacentDrivingLoading.value).filter(([key]) => currentKeys.has(key))
+  );
+
+  const requestVersion = drivingRouteRequestVersion + 1;
+  drivingRouteRequestVersion = requestVersion;
+
+  for (const pair of routePairs) {
+    if (adjacentDrivingInfo.value[pair.key]) continue;
+    adjacentDrivingLoading.value = {
+      ...adjacentDrivingLoading.value,
+      [pair.key]: true,
+    };
+    const detail = await queryAdjacentDrivingDetail(pair.fromPlace, pair.toPlace);
+    if (requestVersion !== drivingRouteRequestVersion) return;
+    const { [pair.key]: _removed, ...nextLoading } = adjacentDrivingLoading.value;
+    adjacentDrivingLoading.value = nextLoading;
+    if (detail) {
+      adjacentDrivingInfo.value = {
+        ...adjacentDrivingInfo.value,
+        [pair.key]: detail,
+      };
+    }
+  }
+};
+
 const buildOrderedRoutePayload = (nextPlaces) => {
   const updates = [];
   displayDays.value.forEach((day) => {
@@ -840,12 +991,18 @@ watch([routePlaces, mapReady], () => {
   if (mapReady.value) renderDiaryMarkers();
 }, { deep: true });
 
+watch([routePlaces, mapReady], () => {
+  if (!mapReady.value) return;
+  refreshAdjacentDrivingInfo();
+}, { deep: true, immediate: true });
+
 watch(() => props.initialView, () => {
   if (!mapReady.value) return;
   applyInitialView();
 }, { deep: true });
 
 onUnmounted(() => {
+  drivingRouteRequestVersion += 1;
   if (autocompleteTimer) clearTimeout(autocompleteTimer);
   if (suggestionSelectionTimer) clearTimeout(suggestionSelectionTimer);
   document.removeEventListener('click', handleDocumentClick);
@@ -1148,6 +1305,13 @@ onUnmounted(() => {
   color: var(--color-text-sub-sub);
   text-align: center;
   padding: 10px 4px 6px;
+}
+
+.route-leg {
+  margin: -2px 4px 8px;
+  padding-left: 10px;
+  font-size: 11px;
+  color: var(--color-text-sub-sub);
 }
 
 .route-add-day-btn {
