@@ -31,4 +31,10 @@ footer a {
 footer a:hover {
   color: var(--color-light);
 }
+
+@media (max-width: 768px) {
+  footer {
+    display: none;
+  }
+}
 </style>
