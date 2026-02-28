@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify, make_response
 from functools import wraps
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -12,11 +12,13 @@ ip_attempts = defaultdict(lambda: {'attempts': 0, 'first_attempt': None, 'blocke
 ip_lock = threading.Lock()
 
 
-def rate_limit(max_attempts=5, time_window=60):
+def rate_limit(max_attempts=5, time_window=60, count_only_failed=False, success_status='0'):
     """
     限流装饰器
     :param max_attempts: 时间窗口内最大尝试次数
     :param time_window: 时间窗口（秒）
+    :param count_only_failed: 是否仅统计失败请求（适用于登录）
+    :param success_status: 业务成功状态码（用于 count_only_failed=True 的 JSON 响应）
     """
     def decorator(f):
         @wraps(f)
@@ -40,30 +42,69 @@ def rate_limit(max_attempts=5, time_window=60):
                         'message': f'请求过于频繁，请在 {remaining_seconds} 秒后重试'
                     }), 429
 
-                # 如果是新的时间窗口或首次访问，重置计数
-                if (ip_data['first_attempt'] is None or 
+                if not count_only_failed:
+                    # 如果是新的时间窗口或首次访问，重置计数
+                    if (ip_data['first_attempt'] is None or
+                        current_time - ip_data['first_attempt'] > timedelta(seconds=time_window)):
+                        ip_data['attempts'] = 1
+                        ip_data['first_attempt'] = current_time
+                        ip_data['blocked_until'] = None
+                    else:
+                        # 在时间窗口内，增加计数
+                        ip_data['attempts'] += 1
+
+                    # 检查是否超过限制
+                    if ip_data['attempts'] > max_attempts:
+                        # 计算剩余封禁时间
+                        time_passed = (current_time - ip_data['first_attempt']).total_seconds()
+                        remaining_time = max(1, int(time_window - time_passed))
+                        ip_data['blocked_until'] = current_time + timedelta(seconds=remaining_time)
+
+                        return jsonify({
+                            'status': '2',
+                            'message': f'登录尝试次数过多，请在 {remaining_time} 秒后重试'
+                        }), 429
+
+            # 继续执行原函数
+            result = f(*args, **kwargs)
+
+            if not count_only_failed:
+                return result
+
+            response = make_response(result)
+            response_data = response.get_json(silent=True) or {}
+            current_time = datetime.now()
+
+            is_success = (
+                response.status_code < 400 and
+                str(response_data.get('status', '')) == str(success_status)
+            )
+
+            with ip_lock:
+                ip_data = ip_attempts[client_ip]
+
+                if is_success:
+                    ip_data['attempts'] = 0
+                    ip_data['first_attempt'] = None
+                    ip_data['blocked_until'] = None
+                    return response
+
+                if (ip_data['first_attempt'] is None or
                     current_time - ip_data['first_attempt'] > timedelta(seconds=time_window)):
                     ip_data['attempts'] = 1
                     ip_data['first_attempt'] = current_time
                     ip_data['blocked_until'] = None
                 else:
-                    # 在时间窗口内，增加计数
                     ip_data['attempts'] += 1
 
-                # 检查是否超过限制
                 if ip_data['attempts'] > max_attempts:
-                    # 计算剩余封禁时间
-                    time_passed = (current_time - ip_data['first_attempt']).total_seconds()
-                    remaining_time = time_window - time_passed
-                    ip_data['blocked_until'] = current_time + timedelta(seconds=remaining_time)
-                    
+                    ip_data['blocked_until'] = current_time + timedelta(seconds=time_window)
                     return jsonify({
                         'status': '2',
-                        'message': f'登录尝试次数过多，请在 {int(remaining_time)} 秒后重试'
+                        'message': f'登录尝试次数过多，请在 {time_window} 秒后重试'
                     }), 429
 
-            # 继续执行原函数
-            return f(*args, **kwargs)
+            return response
         
         return decorated_function
     return decorator

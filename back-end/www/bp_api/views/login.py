@@ -7,7 +7,7 @@ from www.decorators import rate_limit
 
 class LoginView(views.View):
   methods = ['POST']
-  decorators = [rate_limit(max_attempts=5, time_window=60)]
+  decorators = [rate_limit(max_attempts=5, time_window=60, count_only_failed=True)]
 
   def dispatch_request(self):
     return_dict = {'status':'1'}

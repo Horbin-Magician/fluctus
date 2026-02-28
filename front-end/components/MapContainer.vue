@@ -61,21 +61,39 @@
             <h3>日记地点 ({{ places.length }})</h3>
             <span class="favorites-toggle">{{ showPlaces ? '收起' : '展开' }}</span>
           </div>
-          <div v-if="showPlaces" class="favorites-list">
+          <div v-if="showPlaces" class="favorites-list route-days">
             <div
-              v-for="place in places"
-              :key="place.id"
-              class="favorite-item"
-              @click="goToPlace(place)"
+              v-for="day in displayDays"
+              :key="`day-${day}`"
+              class="route-day-group"
+              :class="{ 'is-drag-over': dragOverDay === day }"
+              @dragover.prevent="onDayDragOver(day)"
+              @drop="onDayDrop(day)"
             >
-              <div class="favorite-info">
-                <div class="favorite-name">{{ place.name }}</div>
-                <div class="favorite-address">{{ place.address }}</div>
+              <div class="route-day-title">第 {{ day }} 天</div>
+              <div
+                v-for="place in getPlacesByDay(day)"
+                :key="place.id"
+                class="favorite-item"
+                :class="{ 'is-dragging': draggingPlaceId === place.id }"
+                draggable="true"
+                @dragstart="onPlaceDragStart(place.id)"
+                @dragend="onPlaceDragEnd"
+                @dragover.prevent="onPlaceDragOver(day, place.id)"
+                @drop.stop="onPlaceDrop(day, place.id)"
+                @click="goToPlace(place)"
+              >
+                <div class="favorite-info">
+                  <div class="favorite-name">{{ place.name }}</div>
+                  <div class="favorite-address">{{ place.address }}</div>
+                </div>
+                <button class="remove-favorite" @click.stop="$emit('remove-place', place.id)">
+                  <TrashOutline class="remove-icon" />
+                </button>
               </div>
-              <button class="remove-favorite" @click.stop="$emit('remove-place', place.id)">
-                <TrashOutline class="remove-icon" />
-              </button>
+              <div v-if="getPlacesByDay(day).length === 0" class="route-day-empty">拖拽地点到这一天</div>
             </div>
+            <button class="route-add-day-btn" @click="addRouteDay">+ 新增一天</button>
             <div v-if="places.length === 0" class="no-favorites">暂无地点，搜索并添加吧</div>
           </div>
         </div>
@@ -174,7 +192,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, createVNode, render as vueRender } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, createVNode, render as vueRender } from "vue";
 import {
   Restaurant as RestaurantIcon,
   Cart as CartIcon,
@@ -203,7 +221,7 @@ const props = defineProps({
   diarySummary: { type: String, default: '' },
   initialView: { type: Object, default: null }
 })
-const _emit = defineEmits(['add-place', 'remove-place', 'update-place-type', 'update-place-description', 'edit-diary', 'back', 'view-change'])
+const _emit = defineEmits(['add-place', 'remove-place', 'update-place-type', 'update-place-description', 'update-route-plan', 'edit-diary', 'back', 'view-change'])
 
 const searchKeyword = ref('');
 const searchResults = ref([]);
@@ -213,6 +231,10 @@ const descriptionDraft = ref('');
 const showPlaces = ref(true);
 const sidebarOpen = ref(true);
 const searchSectionRef = ref(null);
+const localPlaces = ref([]);
+const draggingPlaceId = ref(null);
+const dragOverDay = ref(null);
+const manualDayCount = ref(1);
 
 let map = null;
 let AMap = null;
@@ -234,6 +256,46 @@ const hasValidView = (view) => {
     && Number.isFinite(center[1])
     && Number.isFinite(zoom);
 };
+
+const parseDiaryTripDays = (tripTime) => {
+  if (typeof tripTime !== 'string' || !tripTime.trim()) return 1;
+  const matched = tripTime.trim().match(/^(\d{4}-\d{2}-\d{2})(?:\s*(?:至|~|-)\s*(\d{4}-\d{2}-\d{2}))?$/);
+  if (!matched) return 1;
+  const start = Date.parse(`${matched[1]}T00:00:00`);
+  const end = Date.parse(`${(matched[2] || matched[1])}T00:00:00`);
+  if (Number.isNaN(start) || Number.isNaN(end)) return 1;
+  const minTime = Math.min(start, end);
+  const maxTime = Math.max(start, end);
+  const dayMs = 24 * 60 * 60 * 1000;
+  return Math.max(1, Math.floor((maxTime - minTime) / dayMs) + 1);
+};
+
+const normalizeRoutePlaces = (places) => {
+  if (!Array.isArray(places)) return [];
+  return places.map((place, index) => ({
+    ...place,
+    routeDay: Number.isFinite(Number(place?.routeDay)) && Number(place.routeDay) >= 1
+      ? Math.floor(Number(place.routeDay))
+      : 1,
+    routeOrder: Number.isFinite(Number(place?.routeOrder))
+      ? Number(place.routeOrder)
+      : index,
+  }));
+};
+
+const tripDays = computed(() => parseDiaryTripDays(props.diaryTripTime));
+
+const maxAssignedDay = computed(() => {
+  if (localPlaces.value.length === 0) return 1;
+  return Math.max(...localPlaces.value.map((place) => Number.isFinite(Number(place.routeDay)) ? Number(place.routeDay) : 1));
+});
+
+const displayDays = computed(() => {
+  const count = Math.max(1, tripDays.value, manualDayCount.value, maxAssignedDay.value);
+  return Array.from({ length: count }, (_, index) => index + 1);
+});
+
+const routePlaces = computed(() => localPlaces.value);
 
 const hasValidInitialView = () => hasValidView(props.initialView);
 
@@ -485,6 +547,104 @@ const selectSearchResult = (result) => {
   endSuggestionSelection();
 };
 
+const getPlacesByDay = (day) => {
+  return routePlaces.value
+    .filter((place) => Number(place.routeDay) === Number(day))
+    .sort((a, b) => {
+      const orderA = Number.isFinite(Number(a.routeOrder)) ? Number(a.routeOrder) : 0;
+      const orderB = Number.isFinite(Number(b.routeOrder)) ? Number(b.routeOrder) : 0;
+      return orderA - orderB;
+    });
+};
+
+const buildOrderedRoutePayload = (nextPlaces) => {
+  const updates = [];
+  displayDays.value.forEach((day) => {
+    const dayPlaces = nextPlaces
+      .filter((place) => Number(place.routeDay) === day)
+      .sort((a, b) => Number(a.routeOrder) - Number(b.routeOrder));
+    dayPlaces.forEach((place, orderIndex) => {
+      updates.push({ placeId: place.id, routeDay: day, routeOrder: orderIndex });
+    });
+  });
+  return updates;
+};
+
+const commitRouteChanges = (nextPlaces) => {
+  localPlaces.value = normalizeRoutePlaces(nextPlaces);
+  _emit('update-route-plan', { items: buildOrderedRoutePayload(localPlaces.value) });
+};
+
+const onPlaceDragStart = (placeId) => {
+  draggingPlaceId.value = placeId;
+};
+
+const onPlaceDragEnd = () => {
+  draggingPlaceId.value = null;
+  dragOverDay.value = null;
+};
+
+const onDayDragOver = (day) => {
+  dragOverDay.value = day;
+};
+
+const onDayDrop = (targetDay) => {
+  if (!draggingPlaceId.value) return;
+  const draggedPlace = localPlaces.value.find((place) => place.id === draggingPlaceId.value);
+  if (!draggedPlace) return;
+
+  const sameDayPlaces = getPlacesByDay(targetDay);
+  const nextOrder = sameDayPlaces.length;
+  const nextPlaces = localPlaces.value.map((place) => {
+    if (place.id !== draggedPlace.id) return place;
+    return {
+      ...place,
+      routeDay: targetDay,
+      routeOrder: nextOrder
+    };
+  });
+  commitRouteChanges(nextPlaces);
+  onPlaceDragEnd();
+};
+
+const onPlaceDragOver = (day) => {
+  dragOverDay.value = day;
+};
+
+const onPlaceDrop = (targetDay, targetPlaceId) => {
+  if (!draggingPlaceId.value) return;
+  if (draggingPlaceId.value === targetPlaceId) return;
+
+  const draggedPlace = localPlaces.value.find((place) => place.id === draggingPlaceId.value);
+  if (!draggedPlace) return;
+
+  const baseList = localPlaces.value.filter((place) => place.id !== draggedPlace.id);
+  const targetDayPlaces = baseList
+    .filter((place) => Number(place.routeDay) === Number(targetDay))
+    .sort((a, b) => Number(a.routeOrder) - Number(b.routeOrder));
+  const insertIndex = targetDayPlaces.findIndex((place) => place.id === targetPlaceId);
+  const insertAt = insertIndex >= 0 ? insertIndex : targetDayPlaces.length;
+  targetDayPlaces.splice(insertAt, 0, { ...draggedPlace, routeDay: targetDay });
+
+  const rebuilt = baseList.map((place) => ({ ...place }));
+  targetDayPlaces.forEach((place, index) => {
+    const target = rebuilt.find((item) => item.id === place.id);
+    if (!target) {
+      rebuilt.push({ ...place, routeOrder: index });
+      return;
+    }
+    target.routeDay = targetDay;
+    target.routeOrder = index;
+  });
+
+  commitRouteChanges(rebuilt);
+  onPlaceDragEnd();
+};
+
+const addRouteDay = () => {
+  manualDayCount.value = Math.max(manualDayCount.value + 1, displayDays.value.length + 1);
+};
+
 const addSearchMarkers = (places) => {
   places.forEach(place => {
     if (!place.location) return;
@@ -615,7 +775,7 @@ const clearDiaryMarkers = () => {
 const renderDiaryMarkers = () => {
   if (!AMap || !map) return;
   clearDiaryMarkers();
-  props.places.forEach(place => {
+  routePlaces.value.forEach(place => {
     if (!Number.isFinite(place.lng) || !Number.isFinite(place.lat)) return;
     const marker = new AMap.Marker({
       position: [place.lng, place.lat],
@@ -645,16 +805,16 @@ const goToPlace = (place) => {
 
 const isPlaceInDiary = (marker) => {
   if (!marker) return false;
-  return props.places.some(p => p.poi_id === marker.id);
+  return routePlaces.value.some(p => p.poi_id === marker.id);
 };
 
 const getPlaceDbId = (marker) => {
-  const found = props.places.find(p => p.poi_id === marker.id);
+  const found = routePlaces.value.find(p => p.poi_id === marker.id);
   return found ? found.id : null;
 };
 
 const getPlaceTypecode = (marker) => {
-  const found = props.places.find(p => p.poi_id === marker.id);
+  const found = routePlaces.value.find(p => p.poi_id === marker.id);
   return found ? found.typecode : '';
 };
 
@@ -667,7 +827,16 @@ const markerTypeOptions = [
   { code: '15', label: '交通', color: typeColors['15'], icon: iconComponents['15'] },
 ];
 
-watch([() => props.places, mapReady], () => {
+watch(() => props.places, (nextPlaces) => {
+  localPlaces.value = normalizeRoutePlaces(nextPlaces);
+  manualDayCount.value = Math.max(parseDiaryTripDays(props.diaryTripTime), maxAssignedDay.value, 1);
+}, { deep: true, immediate: true });
+
+watch(() => props.diaryTripTime, () => {
+  manualDayCount.value = Math.max(manualDayCount.value, parseDiaryTripDays(props.diaryTripTime), maxAssignedDay.value, 1);
+});
+
+watch([routePlaces, mapReady], () => {
   if (mapReady.value) renderDiaryMarkers();
 }, { deep: true });
 
@@ -949,17 +1118,84 @@ onUnmounted(() => {
   padding: 0 16px;
 }
 
+.route-days {
+  max-height: 360px;
+}
+
+.route-day-group {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 10px;
+  background: color-mix(in srgb, var(--color-background-soft) 70%, transparent);
+}
+
+.route-day-group.is-drag-over {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 50%, transparent) inset;
+}
+
+.route-day-title {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding: 2px 4px;
+}
+
+.route-day-empty {
+  font-size: 12px;
+  color: var(--color-text-sub-sub);
+  text-align: center;
+  padding: 10px 4px 6px;
+}
+
+.route-add-day-btn {
+  width: 100%;
+  border: 1px dashed var(--color-border);
+  background: var(--color-background-soft);
+  color: var(--color-text-sub);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.route-add-day-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 .favorite-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 11px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-background);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
-.favorite-item:hover { background: var(--color-light-light); }
+.favorite-item.is-dragging {
+  opacity: 0.5;
+}
+
+.favorite-item:hover {
+  background: var(--color-light-light);
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--color-shadow);
+}
+
+.favorite-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .favorite-name { font-size: 14px; color: var(--color-text); }
 .favorite-address { font-size: 12px; color: var(--color-text-sub-sub); margin-top: 2px; }
 .no-favorites { text-align: center; color: var(--color-text-sub-sub); padding: 20px 0; font-size: 13px; }

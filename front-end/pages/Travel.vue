@@ -80,6 +80,7 @@
           @remove-place="removePlaceFromDiary"
           @update-place-type="updatePlaceType"
           @update-place-description="updatePlaceDescription"
+          @update-route-plan="updateRoutePlan"
           @view-change="handleMapViewChange"
           @edit-diary="startEdit(currentDiary)"
           @back="closeDiary"
@@ -97,16 +98,11 @@
         <n-input v-model:value="newDiaryName" placeholder="输入日记名称"
           @keyup.enter="handleCreate" />
         <n-date-picker
-          v-model:value="newDiaryTripRange"
-          type="daterange"
+          v-model:value="newDiaryStartDate"
+          type="date"
           clearable
-          separator="至"
           :first-day-of-week="1"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期（可选）"
-          @calendar-change="handleCreateRangeCalendarChange"
-          @update:show="handleCreateRangeShowUpdate"
-          @clear="handleCreateRangeClear"
+          placeholder="开始日期"
         />
         <n-input
           v-model:value="newDiarySummary"
@@ -128,16 +124,11 @@
         <n-input v-model:value="editingDiaryName" placeholder="输入日记名称"
           @keyup.enter="handleEdit" />
         <n-date-picker
-          v-model:value="editingDiaryTripRange"
-          type="daterange"
+          v-model:value="editingDiaryStartDate"
+          type="date"
           clearable
-          separator="至"
           :first-day-of-week="1"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期（可选）"
-          @calendar-change="handleEditRangeCalendarChange"
-          @update:show="handleEditRangeShowUpdate"
-          @clear="handleEditRangeClear"
+          placeholder="开始日期"
         />
         <n-input
           v-model:value="editingDiarySummary"
@@ -176,13 +167,11 @@ const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const newDiaryName = ref('')
-const newDiaryTripRange = ref(null)
-const newDiaryPendingStartDate = ref(null)
+const newDiaryStartDate = ref(null)
 const newDiarySummary = ref('')
 const editingDiary = ref(null)
 const editingDiaryName = ref('')
-const editingDiaryTripRange = ref(null)
-const editingDiaryPendingStartDate = ref(null)
+const editingDiaryStartDate = ref(null)
 const editingDiarySummary = ref('')
 const deletingDiary = ref(null)
 const currentDiaryView = ref(null)
@@ -249,90 +238,72 @@ function formatDateValue(value) {
   return `${year}-${month}-${day}`
 }
 
-function formatTripTimeByDates(startValue, endValue) {
+function formatTripTimeByStartDate(startValue, dayCount = 1) {
   const start = formatDateValue(startValue)
-  const end = formatDateValue(endValue)
-  if (!start && !end) return ''
-  if (start && !end) return start
-  if (!start && end) return end
-  if (start === end) return start
-  return start < end ? `${start} 至 ${end}` : `${end} 至 ${start}`
+  if (!start) return ''
+  const normalizedDayCount = Number.isFinite(Number(dayCount)) && Number(dayCount) >= 1
+    ? Math.floor(Number(dayCount))
+    : 1
+  if (normalizedDayCount <= 1) return start
+  const startTimestamp = Date.parse(`${start}T00:00:00`)
+  if (Number.isNaN(startTimestamp)) return start
+  const dayMs = 24 * 60 * 60 * 1000
+  const endTimestamp = startTimestamp + (normalizedDayCount - 1) * dayMs
+  const end = formatDateValue(endTimestamp)
+  return end && end !== start ? `${start} 至 ${end}` : start
 }
 
-function normalizeTripRange(range, pendingStartDate) {
-  const hasStart = Array.isArray(range) && Number.isFinite(Number(range[0]))
-  const hasEnd = Array.isArray(range) && Number.isFinite(Number(range[1]))
-  const start = hasStart ? Number(range[0]) : null
-  const end = hasEnd ? Number(range[1]) : null
-  if (start !== null && end !== null) {
-    return start <= end ? [start, end] : [end, start]
-  }
-  const single = start ?? end ?? (Number.isFinite(Number(pendingStartDate)) ? Number(pendingStartDate) : null)
-  if (single === null) return null
-  return [single, single]
-}
-
-function formatTripTimeByRange(range, pendingStartDate = null) {
-  const normalized = normalizeTripRange(range, pendingStartDate)
-  if (!normalized) return ''
-  return formatTripTimeByDates(normalized[0], normalized[1])
-}
-
-function getPendingStartFromRange(range) {
-  const start = Array.isArray(range) && Number.isFinite(Number(range[0])) ? Number(range[0]) : null
-  const end = Array.isArray(range) && Number.isFinite(Number(range[1])) ? Number(range[1]) : null
-  if (start !== null && end === null) return start
-  return null
-}
-
-function ensureCreateSingleDayRange() {
-  const normalized = normalizeTripRange(newDiaryTripRange.value, newDiaryPendingStartDate.value)
-  newDiaryTripRange.value = normalized
-  if (normalized) {
-    newDiaryPendingStartDate.value = null
-  }
-}
-
-function ensureEditSingleDayRange() {
-  const normalized = normalizeTripRange(editingDiaryTripRange.value, editingDiaryPendingStartDate.value)
-  editingDiaryTripRange.value = normalized
-  if (normalized) {
-    editingDiaryPendingStartDate.value = null
-  }
-}
-
-function handleCreateRangeCalendarChange(range) {
-  newDiaryPendingStartDate.value = getPendingStartFromRange(range)
-}
-
-function handleEditRangeCalendarChange(range) {
-  editingDiaryPendingStartDate.value = getPendingStartFromRange(range)
-}
-
-function handleCreateRangeShowUpdate(show) {
-  if (!show) ensureCreateSingleDayRange()
-}
-
-function handleEditRangeShowUpdate(show) {
-  if (!show) ensureEditSingleDayRange()
-}
-
-function handleCreateRangeClear() {
-  newDiaryPendingStartDate.value = null
-}
-
-function handleEditRangeClear() {
-  editingDiaryPendingStartDate.value = null
-}
-
-function parseTripTimeToRange(tripTime) {
+function parseStartDateFromTripTime(tripTime) {
   if (typeof tripTime !== 'string' || !tripTime.trim()) return null
   const matched = tripTime.trim().match(/^(\d{4}-\d{2}-\d{2})(?:\s*(?:至|~|-)\s*(\d{4}-\d{2}-\d{2}))?$/)
   if (!matched) return null
   const start = Date.parse(`${matched[1]}T00:00:00`)
-  const end = Date.parse(`${(matched[2] || matched[1])}T00:00:00`)
-  if (Number.isNaN(start) || Number.isNaN(end)) return null
-  return [start, end]
+  if (Number.isNaN(start)) return null
+  return start
+}
+
+function getTripDayCountByPlaces(places = diaryPlaces.value) {
+  if (!Array.isArray(places) || places.length === 0) return 1
+  return places.reduce((maxDay, place) => {
+    const routeDay = Number(place?.routeDay)
+    if (!Number.isFinite(routeDay) || routeDay < 1) return maxDay
+    return Math.max(maxDay, Math.floor(routeDay))
+  }, 1)
+}
+
+function updateDiaryTripTimeInList(diaryId, tripTime) {
+  const index = diaries.value.findIndex((item) => item.id === diaryId)
+  if (index === -1) return
+  diaries.value[index] = {
+    ...diaries.value[index],
+    trip_time: tripTime
+  }
+}
+
+async function syncCurrentDiaryTripTimeByPlaces() {
+  if (!currentDiary.value?.id) return
+  const startDate = parseStartDateFromTripTime(currentDiary.value.trip_time)
+  if (!Number.isFinite(Number(startDate))) return
+  const nextTripTime = formatTripTimeByStartDate(startDate, getTripDayCountByPlaces())
+  if (!nextTripTime || nextTripTime === currentDiary.value.trip_time) return
+
+  const res = await apiCall({
+    type: 'update_diary',
+    diary_id: currentDiary.value.id,
+    name: currentDiary.value.name,
+    trip_time: nextTripTime,
+    summary: currentDiary.value.summary || ''
+  })
+  if (res?.status !== '0') {
+    message.error('同步出行时间失败，请稍后重试')
+    return
+  }
+
+  currentDiary.value = {
+    ...currentDiary.value,
+    trip_time: nextTripTime
+  }
+  updateDiaryTripTimeInList(currentDiary.value.id, nextTripTime)
 }
 
 function normalizeImageUrls(images) {
@@ -346,29 +317,40 @@ function normalizeImageUrls(images) {
 
 function parsePlaceNote(note) {
   if (typeof note !== 'string' || !note.trim()) {
-    return { description: '', images: [] }
+    return { description: '', images: [], routeDay: null, routeOrder: null }
   }
   try {
     const parsed = JSON.parse(note)
+    const routeDayRaw = Number(parsed?.routeDay)
+    const routeOrderRaw = Number(parsed?.routeOrder)
     return {
       description: typeof parsed?.description === 'string' ? parsed.description.trim() : '',
-      images: normalizeImageUrls(parsed?.images)
+      images: normalizeImageUrls(parsed?.images),
+      routeDay: Number.isFinite(routeDayRaw) && routeDayRaw >= 1 ? Math.floor(routeDayRaw) : null,
+      routeOrder: Number.isFinite(routeOrderRaw) ? routeOrderRaw : null
     }
   } catch {
-    return { description: note.trim(), images: [] }
+    return { description: note.trim(), images: [], routeDay: null, routeOrder: null }
   }
 }
 
 function normalizePlaces(rawPlaces) {
   if (!Array.isArray(rawPlaces)) return []
-  return rawPlaces.map((place) => {
+  const withMeta = rawPlaces.map((place, index) => {
     const extra = parsePlaceNote(place?.note)
     return {
       ...place,
       description: extra.description,
-      images: extra.images
+      images: extra.images,
+      routeDay: extra.routeDay,
+      routeOrder: extra.routeOrder ?? index
     }
   })
+  return withMeta.map((place, index) => ({
+    ...place,
+    routeDay: Number.isFinite(place.routeDay) && place.routeDay >= 1 ? place.routeDay : 1,
+    routeOrder: Number.isFinite(place.routeOrder) ? place.routeOrder : index
+  }))
 }
 
 function buildPlaceNote(markerData) {
@@ -376,8 +358,26 @@ function buildPlaceNote(markerData) {
     ? markerData.description.trim()
     : ''
   const images = normalizeImageUrls(markerData?.images)
-  if (!description && images.length === 0) return ''
-  return JSON.stringify({ description, images })
+  const routeDayRaw = Number(markerData?.routeDay)
+  const routeOrderRaw = Number(markerData?.routeOrder)
+  const routeDay = Number.isFinite(routeDayRaw) && routeDayRaw >= 1 ? Math.floor(routeDayRaw) : null
+  const routeOrder = Number.isFinite(routeOrderRaw) ? routeOrderRaw : null
+  if (!description && images.length === 0 && routeDay === null && routeOrder === null) return ''
+  return JSON.stringify({
+    description,
+    images,
+    routeDay,
+    routeOrder
+  })
+}
+
+function getNextRouteOrder(routeDay) {
+  const targetDay = Number(routeDay)
+  if (!Number.isFinite(targetDay) || targetDay < 1) return diaryPlaces.value.length
+  const dayPlaces = diaryPlaces.value.filter((item) => Number(item.routeDay) === targetDay)
+  if (dayPlaces.length === 0) return 0
+  const maxOrder = Math.max(...dayPlaces.map((item, index) => Number.isFinite(Number(item.routeOrder)) ? Number(item.routeOrder) : index))
+  return maxOrder + 1
 }
 
 async function apiCall(data) {
@@ -410,10 +410,10 @@ async function fetchDiaries() {
 async function handleCreate() {
   if (creatingDiary.value) return false
   const name = newDiaryName.value.trim()
-  ensureCreateSingleDayRange()
-  const tripTime = formatTripTimeByRange(newDiaryTripRange.value)
+  const tripTime = formatTripTimeByStartDate(newDiaryStartDate.value)
   const summary = newDiarySummary.value.trim()
   if (!name) { message.warning('请输入日记名称'); return false }
+  if (!tripTime) { message.warning('请选择开始日期'); return false }
   creatingDiary.value = true
   const res = await apiCall({ type: 'create_diary', name, trip_time: tripTime, summary })
   if (res?.status === '0') {
@@ -428,8 +428,7 @@ async function handleCreate() {
 
 function resetCreateForm() {
   newDiaryName.value = ''
-  newDiaryTripRange.value = null
-  newDiaryPendingStartDate.value = null
+  newDiaryStartDate.value = null
   newDiarySummary.value = ''
   showCreateModal.value = false
 }
@@ -446,11 +445,10 @@ function confirmDelete(diary) {
 
 function startEdit(diary) {
   if (!diary) return
-  const parsedRange = parseTripTimeToRange(diary?.trip_time)
+  const parsedStartDate = parseStartDateFromTripTime(diary?.trip_time)
   editingDiary.value = diary
   editingDiaryName.value = diary?.name || ''
-  editingDiaryTripRange.value = parsedRange
-  editingDiaryPendingStartDate.value = null
+  editingDiaryStartDate.value = parsedStartDate
   editingDiarySummary.value = diary?.summary || ''
   showEditModal.value = true
 }
@@ -458,8 +456,7 @@ function startEdit(diary) {
 function resetEditForm() {
   editingDiary.value = null
   editingDiaryName.value = ''
-  editingDiaryTripRange.value = null
-  editingDiaryPendingStartDate.value = null
+  editingDiaryStartDate.value = null
   editingDiarySummary.value = ''
   showEditModal.value = false
 }
@@ -473,11 +470,14 @@ async function handleEdit() {
   if (!editingDiary.value || editingDiaryLoading.value) return false
   const diaryId = editingDiary.value.id
   const name = editingDiaryName.value.trim()
-  ensureEditSingleDayRange()
-  const tripTime = formatTripTimeByRange(editingDiaryTripRange.value)
+  const tripTime = formatTripTimeByStartDate(editingDiaryStartDate.value)
   const summary = editingDiarySummary.value.trim()
   if (!name) {
     message.warning('请输入日记名称')
+    return false
+  }
+  if (!tripTime) {
+    message.warning('请选择开始日期')
     return false
   }
   editingDiaryLoading.value = true
@@ -539,6 +539,7 @@ async function openDiary(diary) {
   diaryPlaces.value = normalizePlaces(res.data)
   currentDiaryView.value = res.view || currentDiaryView.value
   lastSyncedDiaryView = currentDiaryView.value
+  await syncCurrentDiaryTripTimeByPlaces()
   loadingDiaryPlaces.value = false
   openingDiary.value = false
 }
@@ -609,6 +610,8 @@ async function syncPendingDiaryView() {
 async function addPlaceToDiary(markerData) {
   if (!currentDiary.value || placeActionLoading.value) return
   placeActionLoading.value = true
+  const routeDay = 1
+  const routeOrder = getNextRouteOrder(routeDay)
   const place = {
     poi_id: markerData.id || '',
     name: markerData.name || '',
@@ -618,12 +621,15 @@ async function addPlaceToDiary(markerData) {
     tel: markerData.tel || '',
     type: markerData.type || '',
     typecode: markerData.typecode || '',
-    note: buildPlaceNote(markerData)
+    note: buildPlaceNote({ ...markerData, routeDay, routeOrder })
   }
   const res = await apiCall({ type: 'add_place', diary_id: currentDiary.value.id, place })
   if (res?.status === '0') {
     const placesRes = await apiCall({ type: 'get_places', diary_id: currentDiary.value.id })
-    if (placesRes?.status === '0') diaryPlaces.value = normalizePlaces(placesRes.data)
+    if (placesRes?.status === '0') {
+      diaryPlaces.value = normalizePlaces(placesRes.data)
+      await syncCurrentDiaryTripTimeByPlaces()
+    }
     message.success('已添加到日记')
   } else {
     message.error('添加地点失败')
@@ -637,6 +643,7 @@ async function removePlaceFromDiary(placeId) {
   const res = await apiCall({ type: 'delete_place', diary_id: currentDiary.value.id, place_id: placeId })
   if (res?.status === '0') {
     diaryPlaces.value = diaryPlaces.value.filter(p => p.id !== placeId)
+    await syncCurrentDiaryTripTimeByPlaces()
     message.success('已移除')
   } else {
     message.error('移除地点失败')
@@ -672,7 +679,12 @@ async function updatePlaceDescription(payload) {
   const description = typeof payload?.description === 'string'
     ? payload.description.trim()
     : ''
-  const note = buildPlaceNote({ description, images: place.images })
+  const note = buildPlaceNote({
+    description,
+    images: place.images,
+    routeDay: place.routeDay,
+    routeOrder: place.routeOrder
+  })
   const res = await apiCall({
     type: 'update_place_note',
     diary_id: currentDiary.value.id,
@@ -686,6 +698,77 @@ async function updatePlaceDescription(payload) {
   } else {
     message.error('保存简介失败')
   }
+  placeActionLoading.value = false
+}
+
+async function updateRoutePlan(payload) {
+  if (!currentDiary.value || placeActionLoading.value) return
+  const items = Array.isArray(payload?.items) ? payload.items : []
+  if (items.length === 0) return
+
+  const updates = items
+    .map((item) => {
+      const placeId = Number(item?.placeId)
+      const routeDay = Number(item?.routeDay)
+      const routeOrder = Number(item?.routeOrder)
+      if (!Number.isFinite(placeId) || !Number.isFinite(routeDay) || routeDay < 1 || !Number.isFinite(routeOrder)) {
+        return null
+      }
+      const place = diaryPlaces.value.find((entry) => entry.id === placeId)
+      if (!place) return null
+      if (Number(place.routeDay) === Math.floor(routeDay) && Number(place.routeOrder) === routeOrder) {
+        return null
+      }
+      const nextRouteDay = Math.floor(routeDay)
+      const nextRouteOrder = Number(routeOrder)
+      const note = buildPlaceNote({
+        description: place.description,
+        images: place.images,
+        routeDay: nextRouteDay,
+        routeOrder: nextRouteOrder
+      })
+      return {
+        place,
+        placeId,
+        routeDay: nextRouteDay,
+        routeOrder: nextRouteOrder,
+        note
+      }
+    })
+    .filter(Boolean)
+
+  if (updates.length === 0) return
+  placeActionLoading.value = true
+
+  let hasFailed = false
+  for (const update of updates) {
+    const res = await apiCall({
+      type: 'update_place_note',
+      diary_id: currentDiary.value.id,
+      place_id: update.placeId,
+      note: update.note
+    })
+    if (res?.status !== '0') {
+      hasFailed = true
+      break
+    }
+  }
+
+  if (hasFailed) {
+    message.error('保存路线失败，请稍后重试')
+    const placesRes = await apiCall({ type: 'get_places', diary_id: currentDiary.value.id })
+    if (placesRes?.status === '0') {
+      diaryPlaces.value = normalizePlaces(placesRes.data)
+    }
+  } else {
+    updates.forEach((update) => {
+      update.place.routeDay = update.routeDay
+      update.place.routeOrder = update.routeOrder
+      update.place.note = update.note
+    })
+    await syncCurrentDiaryTripTimeByPlaces()
+  }
+
   placeActionLoading.value = false
 }
 
