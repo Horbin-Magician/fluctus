@@ -38,10 +38,20 @@
               <div class="diary-info">
                 <div class="diary-name">{{ diary.name }}</div>
                 <div class="diary-meta">
+                  <span v-if="diary.trip_time" class="diary-trip-time">出行时间：{{ diary.trip_time }}</span>
                   <span class="diary-time">{{ diary.updated_at }}</span>
                 </div>
+                <div v-if="diary.summary" class="diary-summary">{{ diary.summary }}</div>
               </div>
               <div class="diary-actions">
+                <button class="edit-btn" title="编辑日记" @click.stop="startEdit(diary)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                  </svg>
+                </button>
                 <button class="delete-btn" title="删除日记" @click.stop="confirmDelete(diary)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -63,12 +73,15 @@
         <LazyMapContainer
           :places="diaryPlaces"
           :diary-name="currentDiary.name"
+          :diary-trip-time="currentDiary.trip_time || ''"
+          :diary-summary="currentDiary.summary || ''"
           :initial-view="currentDiaryView"
           @add-place="addPlaceToDiary"
           @remove-place="removePlaceFromDiary"
           @update-place-type="updatePlaceType"
           @update-place-description="updatePlaceDescription"
           @view-change="handleMapViewChange"
+          @edit-diary="startEdit(currentDiary)"
           @back="closeDiary"
         />
       </n-spin>
@@ -79,9 +92,61 @@
       title="新建旅行日记" positive-text="创建" negative-text="取消"
       :positive-button-props="{ loading: creatingDiary, disabled: creatingDiary }"
       :negative-button-props="{ disabled: creatingDiary }"
-      @positive-click="handleCreate" @negative-click="showCreateModal = false">
-      <n-input v-model:value="newDiaryName" placeholder="输入日记名称"
-        @keyup.enter="handleCreate" />
+      @positive-click="handleCreate" @negative-click="handleCancelCreate">
+      <div class="create-form">
+        <n-input v-model:value="newDiaryName" placeholder="输入日记名称"
+          @keyup.enter="handleCreate" />
+        <n-date-picker
+          v-model:value="newDiaryTripRange"
+          type="daterange"
+          clearable
+          separator="至"
+          :first-day-of-week="1"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期（可选）"
+          @calendar-change="handleCreateRangeCalendarChange"
+          @update:show="handleCreateRangeShowUpdate"
+          @clear="handleCreateRangeClear"
+        />
+        <n-input
+          v-model:value="newDiarySummary"
+          type="textarea"
+          :maxlength="300"
+          :autosize="{ minRows: 2, maxRows: 4 }"
+          placeholder="旅行简介（可选）"
+        />
+      </div>
+    </n-modal>
+
+    <!-- 编辑日记弹窗 -->
+    <n-modal v-model:show="showEditModal" preset="dialog" :closable="false"
+      title="编辑旅行日记" positive-text="保存" negative-text="取消"
+      :positive-button-props="{ loading: editingDiaryLoading, disabled: editingDiaryLoading }"
+      :negative-button-props="{ disabled: editingDiaryLoading }"
+      @positive-click="handleEdit" @negative-click="handleCancelEdit">
+      <div class="create-form">
+        <n-input v-model:value="editingDiaryName" placeholder="输入日记名称"
+          @keyup.enter="handleEdit" />
+        <n-date-picker
+          v-model:value="editingDiaryTripRange"
+          type="daterange"
+          clearable
+          separator="至"
+          :first-day-of-week="1"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期（可选）"
+          @calendar-change="handleEditRangeCalendarChange"
+          @update:show="handleEditRangeShowUpdate"
+          @clear="handleEditRangeClear"
+        />
+        <n-input
+          v-model:value="editingDiarySummary"
+          type="textarea"
+          :maxlength="300"
+          :autosize="{ minRows: 2, maxRows: 4 }"
+          placeholder="旅行简介（可选）"
+        />
+      </div>
     </n-modal>
 
     <!-- 删除确认弹窗 -->
@@ -97,7 +162,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { NModal, NInput, useMessage, NIcon, NSpin } from 'naive-ui'
+import { NModal, NInput, NDatePicker, useMessage, NIcon, NSpin } from 'naive-ui'
 import { checkLoginPromise } from '@/utils/userUtils'
 import { Bookmarks as BookmarksIcon } from "@vicons/ionicons5"
 import ajax from '@/api/ajax'
@@ -108,12 +173,22 @@ const currentDiary = ref(null)
 const diaries = ref([])
 const diaryPlaces = ref([])
 const showCreateModal = ref(false)
+const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const newDiaryName = ref('')
+const newDiaryTripRange = ref(null)
+const newDiaryPendingStartDate = ref(null)
+const newDiarySummary = ref('')
+const editingDiary = ref(null)
+const editingDiaryName = ref('')
+const editingDiaryTripRange = ref(null)
+const editingDiaryPendingStartDate = ref(null)
+const editingDiarySummary = ref('')
 const deletingDiary = ref(null)
 const currentDiaryView = ref(null)
 const loadingDiaries = ref(false)
 const creatingDiary = ref(false)
+const editingDiaryLoading = ref(false)
 const deletingDiaryLoading = ref(false)
 const openingDiary = ref(false)
 const loadingDiaryPlaces = ref(false)
@@ -163,6 +238,101 @@ function normalizeDiaryView(diary) {
     return null
   }
   return { center: [lng, lat], zoom }
+}
+
+function formatDateValue(value) {
+  const date = new Date(Number(value))
+  if (Number.isNaN(date.getTime())) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatTripTimeByDates(startValue, endValue) {
+  const start = formatDateValue(startValue)
+  const end = formatDateValue(endValue)
+  if (!start && !end) return ''
+  if (start && !end) return start
+  if (!start && end) return end
+  if (start === end) return start
+  return start < end ? `${start} 至 ${end}` : `${end} 至 ${start}`
+}
+
+function normalizeTripRange(range, pendingStartDate) {
+  const hasStart = Array.isArray(range) && Number.isFinite(Number(range[0]))
+  const hasEnd = Array.isArray(range) && Number.isFinite(Number(range[1]))
+  const start = hasStart ? Number(range[0]) : null
+  const end = hasEnd ? Number(range[1]) : null
+  if (start !== null && end !== null) {
+    return start <= end ? [start, end] : [end, start]
+  }
+  const single = start ?? end ?? (Number.isFinite(Number(pendingStartDate)) ? Number(pendingStartDate) : null)
+  if (single === null) return null
+  return [single, single]
+}
+
+function formatTripTimeByRange(range, pendingStartDate = null) {
+  const normalized = normalizeTripRange(range, pendingStartDate)
+  if (!normalized) return ''
+  return formatTripTimeByDates(normalized[0], normalized[1])
+}
+
+function getPendingStartFromRange(range) {
+  const start = Array.isArray(range) && Number.isFinite(Number(range[0])) ? Number(range[0]) : null
+  const end = Array.isArray(range) && Number.isFinite(Number(range[1])) ? Number(range[1]) : null
+  if (start !== null && end === null) return start
+  return null
+}
+
+function ensureCreateSingleDayRange() {
+  const normalized = normalizeTripRange(newDiaryTripRange.value, newDiaryPendingStartDate.value)
+  newDiaryTripRange.value = normalized
+  if (normalized) {
+    newDiaryPendingStartDate.value = null
+  }
+}
+
+function ensureEditSingleDayRange() {
+  const normalized = normalizeTripRange(editingDiaryTripRange.value, editingDiaryPendingStartDate.value)
+  editingDiaryTripRange.value = normalized
+  if (normalized) {
+    editingDiaryPendingStartDate.value = null
+  }
+}
+
+function handleCreateRangeCalendarChange(range) {
+  newDiaryPendingStartDate.value = getPendingStartFromRange(range)
+}
+
+function handleEditRangeCalendarChange(range) {
+  editingDiaryPendingStartDate.value = getPendingStartFromRange(range)
+}
+
+function handleCreateRangeShowUpdate(show) {
+  if (!show) ensureCreateSingleDayRange()
+}
+
+function handleEditRangeShowUpdate(show) {
+  if (!show) ensureEditSingleDayRange()
+}
+
+function handleCreateRangeClear() {
+  newDiaryPendingStartDate.value = null
+}
+
+function handleEditRangeClear() {
+  editingDiaryPendingStartDate.value = null
+}
+
+function parseTripTimeToRange(tripTime) {
+  if (typeof tripTime !== 'string' || !tripTime.trim()) return null
+  const matched = tripTime.trim().match(/^(\d{4}-\d{2}-\d{2})(?:\s*(?:至|~|-)\s*(\d{4}-\d{2}-\d{2}))?$/)
+  if (!matched) return null
+  const start = Date.parse(`${matched[1]}T00:00:00`)
+  const end = Date.parse(`${(matched[2] || matched[1])}T00:00:00`)
+  if (Number.isNaN(start) || Number.isNaN(end)) return null
+  return [start, end]
 }
 
 function normalizeImageUrls(images) {
@@ -240,13 +410,15 @@ async function fetchDiaries() {
 async function handleCreate() {
   if (creatingDiary.value) return false
   const name = newDiaryName.value.trim()
+  ensureCreateSingleDayRange()
+  const tripTime = formatTripTimeByRange(newDiaryTripRange.value)
+  const summary = newDiarySummary.value.trim()
   if (!name) { message.warning('请输入日记名称'); return false }
   creatingDiary.value = true
-  const res = await apiCall({ type: 'create_diary', name })
+  const res = await apiCall({ type: 'create_diary', name, trip_time: tripTime, summary })
   if (res?.status === '0') {
     await fetchDiaries()
-    newDiaryName.value = ''
-    showCreateModal.value = false
+    resetCreateForm()
     message.success('创建成功')
   } else {
     message.error('创建失败，请稍后重试')
@@ -254,9 +426,84 @@ async function handleCreate() {
   creatingDiary.value = false
 }
 
+function resetCreateForm() {
+  newDiaryName.value = ''
+  newDiaryTripRange.value = null
+  newDiaryPendingStartDate.value = null
+  newDiarySummary.value = ''
+  showCreateModal.value = false
+}
+
+function handleCancelCreate() {
+  if (creatingDiary.value) return
+  resetCreateForm()
+}
+
 function confirmDelete(diary) {
   deletingDiary.value = diary
   showDeleteModal.value = true
+}
+
+function startEdit(diary) {
+  if (!diary) return
+  const parsedRange = parseTripTimeToRange(diary?.trip_time)
+  editingDiary.value = diary
+  editingDiaryName.value = diary?.name || ''
+  editingDiaryTripRange.value = parsedRange
+  editingDiaryPendingStartDate.value = null
+  editingDiarySummary.value = diary?.summary || ''
+  showEditModal.value = true
+}
+
+function resetEditForm() {
+  editingDiary.value = null
+  editingDiaryName.value = ''
+  editingDiaryTripRange.value = null
+  editingDiaryPendingStartDate.value = null
+  editingDiarySummary.value = ''
+  showEditModal.value = false
+}
+
+function handleCancelEdit() {
+  if (editingDiaryLoading.value) return
+  resetEditForm()
+}
+
+async function handleEdit() {
+  if (!editingDiary.value || editingDiaryLoading.value) return false
+  const diaryId = editingDiary.value.id
+  const name = editingDiaryName.value.trim()
+  ensureEditSingleDayRange()
+  const tripTime = formatTripTimeByRange(editingDiaryTripRange.value)
+  const summary = editingDiarySummary.value.trim()
+  if (!name) {
+    message.warning('请输入日记名称')
+    return false
+  }
+  editingDiaryLoading.value = true
+  const res = await apiCall({
+    type: 'update_diary',
+    diary_id: editingDiary.value.id,
+    name,
+    trip_time: tripTime,
+    summary
+  })
+  if (res?.status === '0') {
+    if (currentDiary.value?.id === diaryId) {
+      currentDiary.value = {
+        ...currentDiary.value,
+        name,
+        trip_time: tripTime,
+        summary
+      }
+    }
+    await fetchDiaries()
+    resetEditForm()
+    message.success('已保存')
+  } else {
+    message.error('保存失败，请稍后重试')
+  }
+  editingDiaryLoading.value = false
 }
 
 async function handleDelete() {
@@ -617,6 +864,22 @@ onUnmounted(() => {
   color: var(--color-text-sub-sub);
 }
 
+.diary-trip-time {
+  font-size: 12px;
+  color: var(--color-text-sub);
+}
+
+.diary-summary {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-text-sub);
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* 操作区 */
 .diary-actions {
   display: flex;
@@ -637,8 +900,25 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-.diary-item:hover .delete-btn {
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-sub-sub);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.2s ease, background 0.2s ease;
+  opacity: 0;
+}
+
+.diary-item:hover .delete-btn,
+.diary-item:hover .edit-btn {
   opacity: 1;
+}
+
+.edit-btn:hover {
+  color: var(--color-text);
+  background: var(--color-light-light);
 }
 
 .delete-btn:hover {
@@ -663,5 +943,11 @@ onUnmounted(() => {
 .map-view-spin :deep(.n-spin-content) {
   width: 100%;
   height: 100%;
+}
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>

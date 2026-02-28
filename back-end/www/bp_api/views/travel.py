@@ -21,16 +21,20 @@ class TravelView(views.View):
 
             elif type == 'create_diary':
                 name = request.json.get('name', '').strip()
+                trip_time = request.json.get('trip_time', '').strip()
+                summary = request.json.get('summary', '').strip()
                 if name:
-                    diary_id = db.createDiary(username, name)
+                    diary_id = db.createDiary(username, name, trip_time, summary)
                     return_dict['status'] = '0'
                     return_dict['id'] = diary_id
 
             elif type == 'update_diary':
                 diary_id = request.json.get('diary_id')
                 name = request.json.get('name', '').strip()
+                trip_time = request.json.get('trip_time', '').strip()
+                summary = request.json.get('summary', '').strip()
                 if diary_id and name:
-                    db.updateDiary(diary_id, username, name)
+                    db.updateDiary(diary_id, username, name, trip_time, summary)
                     return_dict['status'] = '0'
 
             elif type == 'delete_diary':

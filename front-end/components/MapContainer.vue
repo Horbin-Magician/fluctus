@@ -12,7 +12,19 @@
               <polyline points="15 18 9 12 15 6"/>
             </svg>
           </button>
-          <span class="sidebar-diary-name">{{ diaryName }}</span>
+          <div class="sidebar-diary-info">
+            <span class="sidebar-diary-name">{{ diaryName }}</span>
+            <span v-if="diaryTripTime" class="sidebar-diary-trip-time">{{ diaryTripTime }}</span>
+            <span v-if="diarySummary" class="sidebar-diary-summary">{{ diarySummary }}</span>
+          </div>
+          <button class="sidebar-edit-btn" title="编辑日记信息" @click="_emit('edit-diary')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+            </svg>
+          </button>
           <button class="sidebar-close-btn" @click="toggleSidebar">×</button>
         </div>
         <div ref="searchSectionRef" class="sidebar-section">
@@ -187,9 +199,11 @@ const renderIconSvgContent = (iconComp) => {
 const props = defineProps({
   places: { type: Array, default: () => [] },
   diaryName: { type: String, default: '' },
+  diaryTripTime: { type: String, default: '' },
+  diarySummary: { type: String, default: '' },
   initialView: { type: Object, default: null }
 })
-const _emit = defineEmits(['add-place', 'remove-place', 'update-place-type', 'update-place-description', 'back', 'view-change'])
+const _emit = defineEmits(['add-place', 'remove-place', 'update-place-type', 'update-place-description', 'edit-diary', 'back', 'view-change'])
 
 const searchKeyword = ref('');
 const searchResults = ref([]);
@@ -762,13 +776,38 @@ onUnmounted(() => {
 }
 
 .sidebar-diary-name {
-  flex: 1;
   font-size: 15px;
   font-weight: 500;
   color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sidebar-diary-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-diary-trip-time {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-diary-summary {
+  font-size: 12px;
+  color: var(--color-text-sub-sub);
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .sidebar-close-btn {
@@ -785,6 +824,26 @@ onUnmounted(() => {
   justify-content: center;
   transition: background 0.2s, color 0.2s;
   flex-shrink: 0;
+}
+
+.sidebar-edit-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-sub-sub);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.sidebar-edit-btn:hover {
+  background: var(--color-light-light);
+  color: var(--color-text);
 }
 
 .sidebar-close-btn:hover {

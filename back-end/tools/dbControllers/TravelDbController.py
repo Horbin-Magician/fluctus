@@ -50,30 +50,35 @@ class TravelDbController():
             self.c.execute('ALTER TABLE TRAVEL_DIARY ADD COLUMN VIEW_LAT REAL')
         if 'VIEW_ZOOM' not in columns:
             self.c.execute('ALTER TABLE TRAVEL_DIARY ADD COLUMN VIEW_ZOOM REAL')
+        if 'TRIP_TIME' not in columns:
+            self.c.execute('ALTER TABLE TRAVEL_DIARY ADD COLUMN TRIP_TIME TEXT')
+        if 'SUMMARY' not in columns:
+            self.c.execute('ALTER TABLE TRAVEL_DIARY ADD COLUMN SUMMARY TEXT')
 
     # ---- TRAVEL_DIARY CRUD ----
 
     def getDiaries(self, username):
-        query = '''SELECT ID, USERNAME, NAME, VIEW_LNG, VIEW_LAT, VIEW_ZOOM, CREATED_AT, UPDATED_AT
+        query = '''SELECT ID, USERNAME, NAME, VIEW_LNG, VIEW_LAT, VIEW_ZOOM, TRIP_TIME, SUMMARY, CREATED_AT, UPDATED_AT
                    FROM TRAVEL_DIARY WHERE USERNAME=(?) ORDER BY UPDATED_AT DESC'''
         cursor = self.c.execute(query, [username])
         return [{'id': row[0], 'username': row[1], 'name': row[2],
                  'view_lng': row[3], 'view_lat': row[4], 'view_zoom': row[5],
-                 'created_at': row[6], 'updated_at': row[7]} for row in cursor]
+                 'trip_time': row[6], 'summary': row[7],
+                 'created_at': row[8], 'updated_at': row[9]} for row in cursor]
 
-    def createDiary(self, username, name):
+    def createDiary(self, username, name, trip_time='', summary=''):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = '''INSERT INTO TRAVEL_DIARY (USERNAME, NAME, CREATED_AT, UPDATED_AT)
-                   VALUES (?, ?, ?, ?)'''
-        self.c.execute(query, [username, name, now, now])
+        query = '''INSERT INTO TRAVEL_DIARY (USERNAME, NAME, TRIP_TIME, SUMMARY, CREATED_AT, UPDATED_AT)
+                   VALUES (?, ?, ?, ?, ?, ?)'''
+        self.c.execute(query, [username, name, trip_time, summary, now, now])
         self.conn.commit()
         return self.c.lastrowid
 
-    def updateDiary(self, diary_id, username, name):
+    def updateDiary(self, diary_id, username, name, trip_time='', summary=''):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        query = '''UPDATE TRAVEL_DIARY SET NAME=(?), UPDATED_AT=(?)
+        query = '''UPDATE TRAVEL_DIARY SET NAME=(?), TRIP_TIME=(?), SUMMARY=(?), UPDATED_AT=(?)
                    WHERE ID=(?) AND USERNAME=(?)'''
-        self.c.execute(query, [name, now, diary_id, username])
+        self.c.execute(query, [name, trip_time, summary, now, diary_id, username])
         self.conn.commit()
 
     def getDiaryView(self, diary_id, username):
