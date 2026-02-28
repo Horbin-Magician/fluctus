@@ -15,13 +15,15 @@
           <span class="sidebar-diary-name">{{ diaryName }}</span>
           <button class="sidebar-close-btn" @click="toggleSidebar">×</button>
         </div>
-        <div class="sidebar-section">
+        <div ref="searchSectionRef" class="sidebar-section">
           <div class="search-box">
             <input
               id="search_input"
               v-model="searchKeyword"
               type="text"
               placeholder="搜索地点、景点、餐厅..."
+              @input="handleKeywordInput"
+              @blur="handleSearchBlur"
               @keyup.enter="handleSearch"
             >
             <button class="search-btn" @click="handleSearch">
@@ -33,6 +35,7 @@
               v-for="(result, index) in searchResults"
               :key="index"
               class="search-result-item"
+              @mousedown.prevent="beginSuggestionSelection"
               @click="selectSearchResult(result)"
             >
               <div class="result-name">{{ result.name }}</div>
@@ -153,16 +156,23 @@ const searchResults = ref([]);
 const selectedMarker = ref(null);
 const showPlaces = ref(true);
 const sidebarOpen = ref(true);
+const searchSectionRef = ref(null);
 
 let map = null;
 let AMap = null;
 let placeSearch = null;
-let autocomplete = null;
+let autoComplete = null;
+let autocompleteTimer = null;
+let suggestionSelectionTimer = null;
+let isSelectingSuggestion = false;
 const mapReady = ref(false);
 const searchMarkers = [];
 const diaryMarkers = [];
 
-onMounted(() => { initMap() });
+onMounted(() => {
+  initMap();
+  document.addEventListener('click', handleDocumentClick);
+});
 
 const initMap = () => {
   window._AMapSecurityConfig = {
@@ -171,7 +181,7 @@ const initMap = () => {
   AMapLoader.load({
     key: "3fbe22db53162479e06074420635fba4",
     version: "2.0",
-    plugins: ['AMap.Scale', 'AMap.PlaceSearch', 'AMap.Autocomplete'],
+    plugins: ['AMap.Scale', 'AMap.PlaceSearch', 'AMap.AutoComplete'],
   })
     .then((loadedAMap) => {
       AMap = loadedAMap;
@@ -189,15 +199,120 @@ const initMap = () => {
 
 const initSearch = () => {
   placeSearch = new AMap.PlaceSearch({
-    pageSize: 10, city: "全国", panel: false
+    pageSize: 10, city: "全国", citylimit: false, panel: false
   });
-  autocomplete = new AMap.Autocomplete({
-    input: "search_input", city: "全国"
+  autoComplete = new AMap.AutoComplete({
+    city: "", citylimit: false, datatype: 'poi'
   });
-  autocomplete.on('select', (e) => {
-    searchKeyword.value = e.poi.name;
-    handleSearch();
+};
+
+const handleKeywordInput = () => {
+  const keyword = searchKeyword.value.trim();
+  if (!keyword) {
+    searchResults.value = [];
+    return;
+  }
+  if (autocompleteTimer) clearTimeout(autocompleteTimer);
+  autocompleteTimer = setTimeout(() => {
+    handleAutocomplete(keyword);
+  }, 220);
+};
+
+const handleSearchBlur = () => {
+  setTimeout(() => {
+    if (isSelectingSuggestion) return;
+    const section = searchSectionRef.value;
+    const activeElement = document.activeElement;
+    if (!section || !(activeElement instanceof Node)) {
+      clearSearchMarkers();
+      return;
+    }
+    if (!section.contains(activeElement)) {
+      clearSearchMarkers();
+    }
+  }, 100);
+};
+
+const handleDocumentClick = (event) => {
+  if (isSelectingSuggestion) return;
+  const section = searchSectionRef.value;
+  if (!section) return;
+  const target = event.target;
+  if (target instanceof Node && section.contains(target)) return;
+  clearSearchMarkers();
+};
+
+const beginSuggestionSelection = () => {
+  isSelectingSuggestion = true;
+  if (suggestionSelectionTimer) clearTimeout(suggestionSelectionTimer);
+};
+
+const endSuggestionSelection = () => {
+  if (suggestionSelectionTimer) clearTimeout(suggestionSelectionTimer);
+  suggestionSelectionTimer = setTimeout(() => {
+    isSelectingSuggestion = false;
+    suggestionSelectionTimer = null;
+  }, 180);
+};
+
+const handleAutocomplete = (keyword) => {
+  if (!autoComplete || !keyword) return;
+  autoComplete.search(keyword, (status, result) => {
+    if (status !== 'complete' || !result?.tips?.length) {
+      handleSuggestionFallback(keyword);
+      return;
+    }
+    const tips = result.tips
+      .filter(tip => tip?.name)
+      .map(tip => ({
+        id: tip.id || tip.uid || `${tip.name}-${tip.address || ''}`,
+        name: tip.name,
+        address: [tip.district, tip.address].filter(Boolean).join(' '),
+        location: normalizeLocation(tip.location),
+        tel: '',
+        type: tip.type || '',
+        typecode: tip.typecode || '',
+        isTip: true,
+      }));
+    if (tips.length === 0) {
+      handleSuggestionFallback(keyword);
+      return;
+    }
+    searchResults.value = tips;
   });
+};
+
+const handleSuggestionFallback = (keyword) => {
+  if (!placeSearch || !keyword) {
+    searchResults.value = [];
+    return;
+  }
+  placeSearch.search(keyword, (status, result) => {
+    if (status !== 'complete' || !result?.poiList?.pois?.length) {
+      searchResults.value = [];
+      return;
+    }
+    searchResults.value = result.poiList.pois.slice(0, 8).map(poi => ({
+      id: poi.id,
+      name: poi.name,
+      address: poi.address || '',
+      location: normalizeLocation(poi.location),
+      tel: poi.tel || '',
+      type: poi.type || '',
+      typecode: poi.typecode || ''
+    }));
+  });
+};
+
+const normalizeLocation = (location) => {
+  if (!location) return null;
+  if (typeof location.lng === 'number' && typeof location.lat === 'number') {
+    return { lng: location.lng, lat: location.lat };
+  }
+  if (typeof location.getLng === 'function' && typeof location.getLat === 'function') {
+    return { lng: location.getLng(), lat: location.getLat() };
+  }
+  return null;
 };
 
 const handleSearch = () => {
@@ -221,12 +336,20 @@ const onSearchComplete = (result) => {
 };
 
 const selectSearchResult = (result) => {
+  beginSuggestionSelection();
+  searchKeyword.value = result.name || searchKeyword.value;
   if (result.location) {
+    clearSearchMarkers();
+    addSearchMarkers([result]);
     map.setCenter([result.location.lng, result.location.lat]);
     map.setZoom(16);
     showMarkerInfo(result);
+    searchResults.value = [];
+    endSuggestionSelection();
+    return;
   }
-  searchResults.value = [];
+  handleSearch();
+  endSuggestionSelection();
 };
 
 const addSearchMarkers = (places) => {
@@ -390,6 +513,9 @@ watch([() => props.places, mapReady], () => {
 }, { deep: true });
 
 onUnmounted(() => {
+  if (autocompleteTimer) clearTimeout(autocompleteTimer);
+  if (suggestionSelectionTimer) clearTimeout(suggestionSelectionTimer);
+  document.removeEventListener('click', handleDocumentClick);
   if (map) { map.destroy(); map = null; }
 });
 </script>
@@ -546,6 +672,7 @@ onUnmounted(() => {
 }
 
 .search-box {
+  margin-top: 12px;
   display: flex;
   gap: 8px;
 }
