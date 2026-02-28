@@ -64,6 +64,7 @@
         @add-place="addPlaceToDiary"
         @remove-place="removePlaceFromDiary"
         @update-place-type="updatePlaceType"
+        @update-place-description="updatePlaceDescription"
         @view-change="handleMapViewChange"
         @back="closeDiary"
       />
@@ -147,6 +148,51 @@ function normalizeDiaryView(diary) {
   return { center: [lng, lat], zoom }
 }
 
+function normalizeImageUrls(images) {
+  if (!Array.isArray(images)) return []
+  const urls = images
+    .filter((item) => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => /^https?:\/\//i.test(item))
+  return [...new Set(urls)].slice(0, 6)
+}
+
+function parsePlaceNote(note) {
+  if (typeof note !== 'string' || !note.trim()) {
+    return { description: '', images: [] }
+  }
+  try {
+    const parsed = JSON.parse(note)
+    return {
+      description: typeof parsed?.description === 'string' ? parsed.description.trim() : '',
+      images: normalizeImageUrls(parsed?.images)
+    }
+  } catch {
+    return { description: note.trim(), images: [] }
+  }
+}
+
+function normalizePlaces(rawPlaces) {
+  if (!Array.isArray(rawPlaces)) return []
+  return rawPlaces.map((place) => {
+    const extra = parsePlaceNote(place?.note)
+    return {
+      ...place,
+      description: extra.description,
+      images: extra.images
+    }
+  })
+}
+
+function buildPlaceNote(markerData) {
+  const description = typeof markerData?.description === 'string'
+    ? markerData.description.trim()
+    : ''
+  const images = normalizeImageUrls(markerData?.images)
+  if (!description && images.length === 0) return ''
+  return JSON.stringify({ description, images })
+}
+
 async function apiCall(data) {
   return ajax('/api/travel', data, 'POST')
 }
@@ -191,7 +237,7 @@ async function openDiary(diary) {
   currentDiary.value = diary
   const res = await apiCall({ type: 'get_places', diary_id: diary.id })
   if (res.status !== '0') return
-  diaryPlaces.value = res.data || []
+  diaryPlaces.value = normalizePlaces(res.data)
   currentDiaryView.value = res.view || currentDiaryView.value
   lastSyncedDiaryView = currentDiaryView.value
 }
@@ -238,12 +284,13 @@ async function addPlaceToDiary(markerData) {
     lat: markerData.location?.lat || 0,
     tel: markerData.tel || '',
     type: markerData.type || '',
-    typecode: markerData.typecode || ''
+    typecode: markerData.typecode || '',
+    note: buildPlaceNote(markerData)
   }
   const res = await apiCall({ type: 'add_place', diary_id: currentDiary.value.id, place })
   if (res.status === '0') {
     const placesRes = await apiCall({ type: 'get_places', diary_id: currentDiary.value.id })
-    if (placesRes.status === '0') diaryPlaces.value = placesRes.data
+    if (placesRes.status === '0') diaryPlaces.value = normalizePlaces(placesRes.data)
     message.success('已添加到日记')
   }
 }
@@ -268,6 +315,29 @@ async function updatePlaceType(placeId, typecode) {
   if (res.status === '0') {
     const place = diaryPlaces.value.find(p => p.id === placeId)
     if (place) place.typecode = typecode
+  }
+}
+
+async function updatePlaceDescription(payload) {
+  if (!currentDiary.value) return
+  const placeId = Number(payload?.placeId)
+  if (!Number.isFinite(placeId)) return
+  const place = diaryPlaces.value.find((item) => item.id === placeId)
+  if (!place) return
+  const description = typeof payload?.description === 'string'
+    ? payload.description.trim()
+    : ''
+  const note = buildPlaceNote({ description, images: place.images })
+  const res = await apiCall({
+    type: 'update_place_note',
+    diary_id: currentDiary.value.id,
+    place_id: placeId,
+    note
+  })
+  if (res.status === '0') {
+    place.description = description
+    place.note = note
+    message.success('简介已保存')
   }
 }
 

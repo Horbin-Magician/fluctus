@@ -94,4 +94,12 @@ class TravelView(views.View):
                     if db.updatePlaceTypecode(place_id, diary_id, username, typecode):
                         return_dict['status'] = '0'
 
+            elif type == 'update_place_note':
+                diary_id = request.json.get('diary_id')
+                place_id = request.json.get('place_id')
+                note = request.json.get('note', '')
+                if diary_id and place_id:
+                    if db.updatePlaceNote(place_id, diary_id, username, note):
+                        return_dict['status'] = '0'
+
         return jsonify(return_dict)

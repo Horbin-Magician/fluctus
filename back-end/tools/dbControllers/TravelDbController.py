@@ -158,3 +158,16 @@ class TravelDbController():
                        [typecode, place_id, diary_id])
         self.conn.commit()
         return True
+
+    def updatePlaceNote(self, place_id, diary_id, username, note):
+        check = '''SELECT d.ID FROM TRAVEL_DIARY d
+                   WHERE d.ID=(?) AND d.USERNAME=(?)'''
+        if not self.c.execute(check, [diary_id, username]).fetchone():
+            return False
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.c.execute('UPDATE TRAVEL_PLACE SET NOTE=(?) WHERE ID=(?) AND DIARY_ID=(?)',
+                       [note, place_id, diary_id])
+        self.c.execute('UPDATE TRAVEL_DIARY SET UPDATED_AT=(?) WHERE ID=(?)',
+                       [now, diary_id])
+        self.conn.commit()
+        return True

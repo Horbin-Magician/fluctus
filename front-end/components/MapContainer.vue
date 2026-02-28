@@ -83,6 +83,45 @@
         <p><strong>地址:</strong> {{ selectedMarker.address }}</p>
         <p v-if="selectedMarker.tel"><strong>电话:</strong> {{ selectedMarker.tel }}</p>
         <p v-if="selectedMarker.type"><strong>类型:</strong> {{ selectedMarker.type }}</p>
+        <p
+          v-if="!isEditingDescription"
+          :class="isPlaceInDiary(selectedMarker) ? 'marker-description-editable' : (selectedMarker.description ? '' : 'marker-description-empty')"
+          @click="isPlaceInDiary(selectedMarker) ? startDescriptionEdit() : null"
+        >
+          <strong>简介:</strong>
+          {{ selectedMarker.description || (isPlaceInDiary(selectedMarker) ? '暂无简介，点击编辑' : '暂无简介') }}
+        </p>
+        <div v-if="selectedMarker.images?.length" class="marker-image-section">
+          <p class="marker-image-label"><strong>图片:</strong></p>
+          <div class="marker-image-list">
+            <a
+              v-for="(image, index) in selectedMarker.images"
+              :key="`${selectedMarker.id || selectedMarker.name}-${index}`"
+              class="marker-image-link"
+              :href="image"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img :src="image" :alt="`${selectedMarker.name}-图片${index + 1}`" loading="lazy">
+            </a>
+          </div>
+        </div>
+        <div v-if="isPlaceInDiary(selectedMarker) && isEditingDescription" class="marker-description-section">
+          <div class="marker-description-editor">
+            <textarea
+              v-model="descriptionDraft"
+              class="marker-description-input"
+              rows="3"
+              maxlength="500"
+              placeholder="输入你对这个地点的简介或备注"
+            />
+            <div class="marker-description-count">{{ descriptionDraft.length }}/500</div>
+            <div class="marker-description-actions">
+              <button class="marker-description-btn subtle" @click="cancelDescriptionEdit">取消</button>
+              <button class="marker-description-btn primary" @click="saveDescriptionEdit">保存</button>
+            </div>
+          </div>
+        </div>
         <div v-if="isPlaceInDiary(selectedMarker)" class="marker-type-section">
           <p class="marker-type-label"><strong>标记图标:</strong></p>
           <div class="marker-type-options">
@@ -150,11 +189,13 @@ const props = defineProps({
   diaryName: { type: String, default: '' },
   initialView: { type: Object, default: null }
 })
-const _emit = defineEmits(['add-place', 'remove-place', 'update-place-type', 'back', 'view-change'])
+const _emit = defineEmits(['add-place', 'remove-place', 'update-place-type', 'update-place-description', 'back', 'view-change'])
 
 const searchKeyword = ref('');
 const searchResults = ref([]);
 const selectedMarker = ref(null);
+const isEditingDescription = ref(false);
+const descriptionDraft = ref('');
 const showPlaces = ref(true);
 const sidebarOpen = ref(true);
 const searchSectionRef = ref(null);
@@ -322,6 +363,8 @@ const handleAutocomplete = (keyword) => {
         tel: '',
         type: tip.type || '',
         typecode: tip.typecode || '',
+        description: getPlaceDescription(tip),
+        images: normalizeImages(tip.photos || tip.images),
         isTip: true,
       }));
     if (tips.length === 0) {
@@ -349,7 +392,9 @@ const handleSuggestionFallback = (keyword) => {
       location: normalizeLocation(poi.location),
       tel: poi.tel || '',
       type: poi.type || '',
-      typecode: poi.typecode || ''
+      typecode: poi.typecode || '',
+      description: getPlaceDescription(poi),
+      images: normalizeImages(poi.photos || poi.images)
     }));
   });
 };
@@ -363,6 +408,28 @@ const normalizeLocation = (location) => {
     return { lng: location.getLng(), lat: location.getLat() };
   }
   return null;
+};
+
+const normalizeImages = (images) => {
+  if (!Array.isArray(images)) return [];
+  const urls = images.map((item) => {
+    if (typeof item === 'string') return item;
+    if (!item || typeof item !== 'object') return '';
+    return item.url || item.image || item.img || '';
+  }).filter((url) => typeof url === 'string' && /^https?:\/\//i.test(url.trim()));
+  return [...new Set(urls.map((url) => url.trim()))].slice(0, 6);
+};
+
+const getPlaceDescription = (place) => {
+  const candidates = [
+    place?.description,
+    place?.intro,
+    place?.detail,
+    place?.businessArea,
+    place?.adname,
+  ];
+  const text = candidates.find((item) => typeof item === 'string' && item.trim());
+  return text ? text.trim() : '';
 };
 
 const handleSearch = () => {
@@ -379,7 +446,9 @@ const onSearchComplete = (result) => {
     searchResults.value = result.poiList.pois.map(poi => ({
       id: poi.id, name: poi.name, address: poi.address,
       location: poi.location, tel: poi.tel,
-      type: poi.type, typecode: poi.typecode
+      type: poi.type, typecode: poi.typecode,
+      description: getPlaceDescription(poi),
+      images: normalizeImages(poi.photos || poi.images)
     }));
     addSearchMarkers(searchResults.value);
   }
@@ -485,10 +554,34 @@ const createMarkerContent = (typecode, isDiary, name) => {
 
 const showMarkerInfo = (place) => {
   selectedMarker.value = place;
+  isEditingDescription.value = false;
+  descriptionDraft.value = place?.description || '';
 };
 
 const closeMarkerInfo = () => {
   selectedMarker.value = null;
+  isEditingDescription.value = false;
+  descriptionDraft.value = '';
+};
+
+const startDescriptionEdit = () => {
+  descriptionDraft.value = selectedMarker.value?.description || '';
+  isEditingDescription.value = true;
+};
+
+const cancelDescriptionEdit = () => {
+  descriptionDraft.value = selectedMarker.value?.description || '';
+  isEditingDescription.value = false;
+};
+
+const saveDescriptionEdit = () => {
+  const marker = selectedMarker.value;
+  const placeId = getPlaceDbId(marker);
+  if (!marker || !placeId) return;
+  const description = descriptionDraft.value.trim();
+  selectedMarker.value = { ...marker, description };
+  isEditingDescription.value = false;
+  _emit('update-place-description', { placeId, description });
 };
 
 const toggleSidebar = () => {
@@ -529,7 +622,9 @@ const goToPlace = (place) => {
     showMarkerInfo({
       id: place.poi_id, name: place.name, address: place.address,
       location: { lng: place.lng, lat: place.lat },
-      tel: place.tel, type: place.type, typecode: place.typecode
+      tel: place.tel, type: place.type, typecode: place.typecode,
+      description: place.description || '',
+      images: Array.isArray(place.images) ? place.images : []
     });
   }
 };
@@ -934,6 +1029,113 @@ onUnmounted(() => {
 .marker-type-icon {
   width: 18px;
   height: 18px;
+}
+
+.marker-image-section {
+  margin-top: 10px;
+}
+
+.marker-image-label {
+  margin-bottom: 6px !important;
+}
+
+.marker-image-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.marker-image-link {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f5f5f5;
+  border: 1px solid #ececec;
+  aspect-ratio: 1 / 1;
+}
+
+.marker-image-link img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.marker-description-section {
+  margin-top: 10px;
+}
+
+.marker-description-empty {
+  color: #999 !important;
+}
+
+.marker-description-editable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(153, 153, 153, 0.45);
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.marker-description-editable:hover {
+  text-decoration-color: rgba(46, 204, 113, 0.95);
+  color: #2ecc71 !important;
+}
+
+.marker-description-editor {
+  margin-top: 8px;
+}
+
+.marker-description-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 70px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #444;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.marker-description-input:focus {
+  border-color: #2ecc71;
+}
+
+.marker-description-count {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #999;
+  text-align: right;
+}
+
+.marker-description-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.marker-description-btn {
+  border: 1px solid #d8d8d8;
+  background: #fff;
+  color: #666;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.marker-description-btn.primary {
+  border-color: #2ecc71;
+  background: #2ecc71;
+  color: #fff;
+}
+
+.marker-description-btn.subtle {
+  background: #fafafa;
 }
 
 @media (max-width: 768px) {
