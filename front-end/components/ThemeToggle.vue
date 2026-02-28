@@ -6,7 +6,11 @@ import { Sunny as SunIcon, Moon as MoonIcon } from "@vicons/ionicons5"
 import storageUtils from '@/utils/storageUtils'
 
 const docBody = document.body
-const theme = ref(docBody.getAttribute('theme'))
+const theme = ref(docBody.getAttribute('theme') || 'light')
+
+if (!docBody.getAttribute('theme')) {
+  docBody.setAttribute('theme', theme.value)
+}
 
 // 初始化theme信息
 const theme_storaged = storageUtils.getTheme()

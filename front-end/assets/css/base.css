@@ -10,6 +10,18 @@
   --light_yellow: rgb(243, 240, 86, 0.553);
   --true_white: #ffffff;
   --soft_dark: #000000;
+
+  --color-background: var(--white);
+  --color-background-soft: var(--true_white);
+  --color-text: var(--black);
+  --color-text-sub: var(--dark);
+  --color-text-sub-sub: var(--grey);
+  --color-light: var(--sky_blue);
+  --color-light-light: var(--light_sky_blue);
+  --color-primary: var(--sky_blue);
+  --color-primary-rgb: 69, 163, 250;
+  --color-border: #e0e0e0;
+  --color-shadow: rgba(0, 0, 0, 0.08);
 }
 
 [theme='light'] {
