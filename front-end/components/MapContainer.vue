@@ -24,7 +24,9 @@
               placeholder="搜索地点、景点、餐厅..."
               @keyup.enter="handleSearch"
             >
-            <button class="search-btn" @click="handleSearch">🔍</button>
+            <button class="search-btn" @click="handleSearch">
+              <SearchOutline class="search-icon" />
+            </button>
           </div>
           <div v-if="searchResults.length > 0" class="search-results">
             <div
@@ -55,7 +57,9 @@
                 <div class="favorite-name">{{ place.name }}</div>
                 <div class="favorite-address">{{ place.address }}</div>
               </div>
-              <button class="remove-favorite" @click.stop="$emit('remove-place', place.id)">🗑️</button>
+              <button class="remove-favorite" @click.stop="$emit('remove-place', place.id)">
+                <TrashOutline class="remove-icon" />
+              </button>
             </div>
             <div v-if="places.length === 0" class="no-favorites">暂无地点，搜索并添加吧</div>
           </div>
@@ -89,8 +93,9 @@
                 : { '--hover-color': opt.color }"
               :title="opt.label"
               @click="$emit('update-place-type', getPlaceDbId(selectedMarker), opt.code)"
-              v-html="opt.preview"
-            />
+            >
+              <component :is="opt.icon" class="marker-type-icon" />
+            </button>
           </div>
         </div>
         <div class="marker-actions">
@@ -123,7 +128,9 @@ import {
   Bed as BedIcon,
   Leaf as LeafIcon,
   Bus as BusIcon,
-  Location as LocationIcon
+  Location as LocationIcon,
+  SearchOutline,
+  TrashOutline
 } from "@vicons/ionicons5";
 
 // 将 xicons Vue 组件渲染为 SVG innerHTML 字符串
@@ -370,20 +377,13 @@ const getPlaceTypecode = (marker) => {
 };
 
 const markerTypeOptions = [
-  { code: '', label: '默认', color: defaultDiaryColor },
-  { code: '05', label: '餐饮', color: typeColors['05'] },
-  { code: '06', label: '购物', color: typeColors['06'] },
-  { code: '10', label: '住宿', color: typeColors['10'] },
-  { code: '11', label: '风景', color: typeColors['11'] },
-  { code: '15', label: '交通', color: typeColors['15'] },
+  { code: '', label: '默认', color: defaultDiaryColor, icon: defaultIconComponent },
+  { code: '05', label: '餐饮', color: typeColors['05'], icon: iconComponents['05'] },
+  { code: '06', label: '购物', color: typeColors['06'], icon: iconComponents['06'] },
+  { code: '10', label: '住宿', color: typeColors['10'], icon: iconComponents['10'] },
+  { code: '11', label: '风景', color: typeColors['11'], icon: iconComponents['11'] },
+  { code: '15', label: '交通', color: typeColors['15'], icon: iconComponents['15'] },
 ];
-
-const buildTypePreviewSvg = (code) => {
-  const comp = code ? (iconComponents[code] || defaultIconComponent) : defaultIconComponent;
-  const innerSvg = renderIconSvgContent(comp);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512" style="color:currentColor">${innerSvg}</svg>`;
-};
-markerTypeOptions.forEach(opt => { opt.preview = buildTypePreviewSvg(opt.code); });
 
 watch([() => props.places, mapReady], () => {
   if (mapReady.value) renderDiaryMarkers();
@@ -410,34 +410,54 @@ onUnmounted(() => {
   position: absolute;
   top: 70px;
   left: 16px;
-  width: 320px;
+  width: min(340px, calc(100vw - 32px));
   max-height: calc(100% - 86px);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
   border-radius: 12px;
   z-index: 100;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  overflow-y: auto;
+  transform: translateX(0);
+  opacity: 1;
+  visibility: visible;
+  transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.22s ease;
+  will-change: transform, opacity;
+  overflow: hidden;
 }
 
 .sidebar.collapsed {
-  transform: translateX(-20px);
+  transform: translateX(calc(-100% - 20px));
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 
 .sidebar-content {
   padding: 0;
   position: relative;
+  max-height: calc(100% - 2px);
+  overflow-y: auto;
+}
+
+.sidebar-content::-webkit-scrollbar { width: 6px; }
+.sidebar-content::-webkit-scrollbar-track { background: transparent; }
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 999px;
 }
 
 .sidebar-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 14px 16px;
-  border-bottom: 1px solid #eee;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #ececec;
 }
 
 .back-btn {
@@ -490,12 +510,12 @@ onUnmounted(() => {
 }
 
 .sidebar-section {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   padding: 0 16px;
 }
 
 .sidebar-section:first-child {
-  padding-top: 14px;
+  padding-top: 12px;
 }
 
 .sidebar-section-title {
@@ -521,8 +541,8 @@ onUnmounted(() => {
 
 .sidebar-divider {
   height: 1px;
-  background: #eee;
-  margin: 10px 16px;
+  background: #efefef;
+  margin: 12px 16px;
 }
 
 .search-box {
@@ -542,12 +562,20 @@ onUnmounted(() => {
 .search-box input:focus { border-color: #2ecc71; }
 
 .search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 12px;
   border: none;
   border-radius: 6px;
   background: #2ecc71;
   color: white;
   cursor: pointer;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .search-results {
@@ -592,13 +620,20 @@ onUnmounted(() => {
 .no-favorites { text-align: center; color: #999; padding: 20px 0; font-size: 13px; }
 
 .remove-favorite {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
   padding: 4px;
   opacity: 0.5;
   transition: opacity 0.2s;
+}
+
+.remove-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .remove-favorite:hover { opacity: 1; }
@@ -706,6 +741,11 @@ onUnmounted(() => {
 
 .marker-type-btn.active {
   color: #fff;
+}
+
+.marker-type-icon {
+  width: 18px;
+  height: 18px;
 }
 
 @media (max-width: 768px) {
