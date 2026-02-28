@@ -43,8 +43,32 @@ class TravelView(views.View):
                 diary_id = request.json.get('diary_id')
                 if diary_id:
                     data = db.getPlaces(diary_id, username)
+                    view = db.getDiaryView(diary_id, username)
                     return_dict['status'] = '0'
                     return_dict['data'] = data
+                    return_dict['view'] = view
+
+            elif type == 'get_diary_view':
+                diary_id = request.json.get('diary_id')
+                if diary_id:
+                    data = db.getDiaryView(diary_id, username)
+                    return_dict['status'] = '0'
+                    return_dict['data'] = data
+
+            elif type == 'update_diary_view':
+                diary_id = request.json.get('diary_id')
+                center = request.json.get('center')
+                zoom = request.json.get('zoom')
+                if diary_id and isinstance(center, list) and len(center) == 2 and zoom is not None:
+                    try:
+                        lng = float(center[0])
+                        lat = float(center[1])
+                        zoom = float(zoom)
+                    except (TypeError, ValueError):
+                        lng = lat = zoom = None
+                    if lng is not None and lat is not None and zoom is not None:
+                        if db.updateDiaryView(diary_id, username, lng, lat, zoom):
+                            return_dict['status'] = '0'
 
             elif type == 'add_place':
                 diary_id = request.json.get('diary_id')

@@ -124,7 +124,6 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, createVNode, render as vueRender } from "vue";
-import AMapLoader from "@amap/amap-jsapi-loader";
 import {
   Restaurant as RestaurantIcon,
   Cart as CartIcon,
@@ -135,6 +134,7 @@ import {
   SearchOutline,
   TrashOutline
 } from "@vicons/ionicons5";
+import { preloadAmap } from '@/utils/amapLoader';
 
 // 将 xicons Vue 组件渲染为 SVG innerHTML 字符串
 const renderIconSvgContent = (iconComp) => {
@@ -147,9 +147,10 @@ const renderIconSvgContent = (iconComp) => {
 
 const props = defineProps({
   places: { type: Array, default: () => [] },
-  diaryName: { type: String, default: '' }
+  diaryName: { type: String, default: '' },
+  initialView: { type: Object, default: null }
 })
-const _emit = defineEmits(['add-place', 'remove-place', 'update-place-type', 'back'])
+const _emit = defineEmits(['add-place', 'remove-place', 'update-place-type', 'back', 'view-change'])
 
 const searchKeyword = ref('');
 const searchResults = ref([]);
@@ -169,27 +170,76 @@ const mapReady = ref(false);
 const searchMarkers = [];
 const diaryMarkers = [];
 
+const hasValidView = (view) => {
+  const center = view?.center;
+  const zoom = view?.zoom;
+  return Array.isArray(center)
+    && center.length === 2
+    && Number.isFinite(center[0])
+    && Number.isFinite(center[1])
+    && Number.isFinite(zoom);
+};
+
+const hasValidInitialView = () => hasValidView(props.initialView);
+
+const isSameViewAsCurrent = (view) => {
+  if (!map || !hasValidView(view)) return false;
+  const center = map.getCenter();
+  const zoom = map.getZoom();
+  if (!center || !Number.isFinite(zoom)) return false;
+  const currentLng = center.getLng();
+  const currentLat = center.getLat();
+  const [targetLng, targetLat] = view.center;
+  const lngDiff = Math.abs(currentLng - targetLng);
+  const latDiff = Math.abs(currentLat - targetLat);
+  const zoomDiff = Math.abs(zoom - view.zoom);
+  return lngDiff < 0.000001 && latDiff < 0.000001 && zoomDiff < 0.001;
+};
+
+const applyInitialView = () => {
+  if (!map || !hasValidInitialView()) return;
+  if (isSameViewAsCurrent(props.initialView)) return;
+  if (typeof map.setZoomAndCenter === 'function') {
+    map.setZoomAndCenter(props.initialView.zoom, props.initialView.center, true);
+    return;
+  }
+  map.setCenter(props.initialView.center, true);
+  map.setZoom(props.initialView.zoom, true);
+};
+
+const emitCurrentView = () => {
+  if (!map) return;
+  const center = map.getCenter();
+  const zoom = map.getZoom();
+  if (!center || !Number.isFinite(zoom)) return;
+  _emit('view-change', {
+    center: [center.getLng(), center.getLat()],
+    zoom
+  });
+};
+
 onMounted(() => {
   initMap();
   document.addEventListener('click', handleDocumentClick);
 });
 
 const initMap = () => {
-  window._AMapSecurityConfig = {
-    securityJsCode: "467acecf4320cdce83d519705e1aad3b", // TODO - 生产环境请替换为正式的安全码
-  };
-  AMapLoader.load({
-    key: "3fbe22db53162479e06074420635fba4",
-    version: "2.0",
-    plugins: ['AMap.Scale', 'AMap.PlaceSearch', 'AMap.AutoComplete'],
-  })
+  preloadAmap()
     .then((loadedAMap) => {
       AMap = loadedAMap;
+      const initialCenter = hasValidInitialView()
+        ? props.initialView.center
+        : [116.397428, 39.90923];
+      const initialZoom = hasValidInitialView()
+        ? props.initialView.zoom
+        : 13;
       map = new AMap.Map("amap", {
-        zoom: 13,
-        center: [116.397428, 39.90923],
+        zoom: initialZoom,
+        center: initialCenter,
       });
       map.addControl(new AMap.Scale());
+      map.on('moveend', emitCurrentView);
+      map.on('zoomend', emitCurrentView);
       mapReady.value = true;
       initSearch();
       renderDiaryMarkers();
@@ -459,7 +509,7 @@ const renderDiaryMarkers = () => {
   if (!AMap || !map) return;
   clearDiaryMarkers();
   props.places.forEach(place => {
-    if (!place.lng || !place.lat) return;
+    if (!Number.isFinite(place.lng) || !Number.isFinite(place.lat)) return;
     const marker = new AMap.Marker({
       position: [place.lng, place.lat],
       title: place.name,
@@ -512,11 +562,22 @@ watch([() => props.places, mapReady], () => {
   if (mapReady.value) renderDiaryMarkers();
 }, { deep: true });
 
+watch(() => props.initialView, () => {
+  if (!mapReady.value) return;
+  applyInitialView();
+}, { deep: true });
+
 onUnmounted(() => {
   if (autocompleteTimer) clearTimeout(autocompleteTimer);
   if (suggestionSelectionTimer) clearTimeout(suggestionSelectionTimer);
   document.removeEventListener('click', handleDocumentClick);
-  if (map) { map.destroy(); map = null; }
+  if (map) {
+    emitCurrentView();
+    map.off('moveend', emitCurrentView);
+    map.off('zoomend', emitCurrentView);
+    map.destroy();
+    map = null;
+  }
 });
 </script>
 

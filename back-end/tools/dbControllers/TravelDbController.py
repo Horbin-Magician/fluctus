@@ -19,6 +19,9 @@ class TravelDbController():
         (ID         INTEGER  PRIMARY KEY  AUTOINCREMENT,
         USERNAME   TEXT     NOT NULL,
         NAME       TEXT     NOT NULL,
+        VIEW_LNG   REAL,
+        VIEW_LAT   REAL,
+        VIEW_ZOOM  REAL,
         CREATED_AT TEXT     NOT NULL,
         UPDATED_AT TEXT     NOT NULL)''')
         self.c.execute('''CREATE TABLE IF NOT EXISTS TRAVEL_PLACE
@@ -35,15 +38,28 @@ class TravelDbController():
         NOTE       TEXT,
         CREATED_AT TEXT     NOT NULL,
         FOREIGN KEY (DIARY_ID) REFERENCES TRAVEL_DIARY(ID))''')
+        self.ensureDiaryViewColumns()
         self.conn.commit()
+
+    def ensureDiaryViewColumns(self):
+        cursor = self.c.execute('PRAGMA table_info(TRAVEL_DIARY)')
+        columns = [row[1] for row in cursor]
+        if 'VIEW_LNG' not in columns:
+            self.c.execute('ALTER TABLE TRAVEL_DIARY ADD COLUMN VIEW_LNG REAL')
+        if 'VIEW_LAT' not in columns:
+            self.c.execute('ALTER TABLE TRAVEL_DIARY ADD COLUMN VIEW_LAT REAL')
+        if 'VIEW_ZOOM' not in columns:
+            self.c.execute('ALTER TABLE TRAVEL_DIARY ADD COLUMN VIEW_ZOOM REAL')
 
     # ---- TRAVEL_DIARY CRUD ----
 
     def getDiaries(self, username):
-        query = 'SELECT * FROM TRAVEL_DIARY WHERE USERNAME=(?) ORDER BY UPDATED_AT DESC'
+        query = '''SELECT ID, USERNAME, NAME, VIEW_LNG, VIEW_LAT, VIEW_ZOOM, CREATED_AT, UPDATED_AT
+                   FROM TRAVEL_DIARY WHERE USERNAME=(?) ORDER BY UPDATED_AT DESC'''
         cursor = self.c.execute(query, [username])
         return [{'id': row[0], 'username': row[1], 'name': row[2],
-                 'created_at': row[3], 'updated_at': row[4]} for row in cursor]
+                 'view_lng': row[3], 'view_lat': row[4], 'view_zoom': row[5],
+                 'created_at': row[6], 'updated_at': row[7]} for row in cursor]
 
     def createDiary(self, username, name):
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -59,6 +75,24 @@ class TravelDbController():
                    WHERE ID=(?) AND USERNAME=(?)'''
         self.c.execute(query, [name, now, diary_id, username])
         self.conn.commit()
+
+    def getDiaryView(self, diary_id, username):
+        query = '''SELECT VIEW_LNG, VIEW_LAT, VIEW_ZOOM FROM TRAVEL_DIARY
+                   WHERE ID=(?) AND USERNAME=(?)'''
+        row = self.c.execute(query, [diary_id, username]).fetchone()
+        if not row:
+            return None
+        if row[0] is None or row[1] is None or row[2] is None:
+            return None
+        return {'center': [row[0], row[1]], 'zoom': row[2]}
+
+    def updateDiaryView(self, diary_id, username, lng, lat, zoom):
+        query = '''UPDATE TRAVEL_DIARY
+                   SET VIEW_LNG=(?), VIEW_LAT=(?), VIEW_ZOOM=(?)
+                   WHERE ID=(?) AND USERNAME=(?)'''
+        self.c.execute(query, [lng, lat, zoom, diary_id, username])
+        self.conn.commit()
+        return self.c.rowcount > 0
 
     def deleteDiary(self, diary_id, username):
         self.c.execute('DELETE FROM TRAVEL_PLACE WHERE DIARY_ID=(?)', [diary_id])

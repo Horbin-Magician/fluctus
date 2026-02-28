@@ -60,9 +60,11 @@
       <MapContainer
         :places="diaryPlaces"
         :diary-name="currentDiary.name"
+        :initial-view="currentDiaryView"
         @add-place="addPlaceToDiary"
         @remove-place="removePlaceFromDiary"
         @update-place-type="updatePlaceType"
+        @view-change="handleMapViewChange"
         @back="closeDiary"
       />
     </div>
@@ -85,11 +87,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { NModal, NInput, useMessage, NIcon } from 'naive-ui'
 import { checkLoginPromise } from '@/utils/userUtils'
 import { Bookmarks as BookmarksIcon } from "@vicons/ionicons5"
 import ajax from '@/api/ajax'
+import { preloadAmap } from '@/utils/amapLoader'
 
 const message = useMessage()
 
@@ -100,6 +103,49 @@ const showCreateModal = ref(false)
 const showDeleteModal = ref(false)
 const newDiaryName = ref('')
 const deletingDiary = ref(null)
+const currentDiaryView = ref(null)
+let mapViewSyncTimer = null
+let lastSyncedDiaryView = null
+
+const VIEW_SYNC_DISTANCE_THRESHOLD_METERS = 50
+const VIEW_SYNC_ZOOM_THRESHOLD = 0.2
+
+function toRadians(degree) {
+  return degree * Math.PI / 180
+}
+
+function getDistanceMeters(centerA, centerB) {
+  if (!Array.isArray(centerA) || !Array.isArray(centerB)) return Number.POSITIVE_INFINITY
+  const [lng1, lat1] = centerA.map(Number)
+  const [lng2, lat2] = centerB.map(Number)
+  if (![lng1, lat1, lng2, lat2].every(Number.isFinite)) return Number.POSITIVE_INFINITY
+  const earthRadius = 6371000
+  const dLat = toRadians(lat2 - lat1)
+  const dLng = toRadians(lng2 - lng1)
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLng / 2) ** 2
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return earthRadius * c
+}
+
+function shouldSyncDiaryView(nextView, prevView) {
+  if (!nextView?.center || !Number.isFinite(Number(nextView.zoom))) return false
+  if (!prevView?.center || !Number.isFinite(Number(prevView.zoom))) return true
+  const zoomDiff = Math.abs(Number(nextView.zoom) - Number(prevView.zoom))
+  if (zoomDiff >= VIEW_SYNC_ZOOM_THRESHOLD) return true
+  const distance = getDistanceMeters(nextView.center, prevView.center)
+  return distance >= VIEW_SYNC_DISTANCE_THRESHOLD_METERS
+}
+
+function normalizeDiaryView(diary) {
+  const lng = Number(diary?.view_lng)
+  const lat = Number(diary?.view_lat)
+  const zoom = Number(diary?.view_zoom)
+  if (!Number.isFinite(lng) || !Number.isFinite(lat) || !Number.isFinite(zoom)) {
+    return null
+  }
+  return { center: [lng, lat], zoom }
+}
 
 async function apiCall(data) {
   return ajax('/api/travel', data, 'POST')
@@ -140,14 +186,46 @@ async function handleDelete() {
 }
 
 async function openDiary(diary) {
+  currentDiaryView.value = normalizeDiaryView(diary)
+  lastSyncedDiaryView = currentDiaryView.value
   currentDiary.value = diary
   const res = await apiCall({ type: 'get_places', diary_id: diary.id })
-  if (res.status === '0') diaryPlaces.value = res.data
+  if (res.status !== '0') return
+  diaryPlaces.value = res.data || []
+  currentDiaryView.value = res.view || currentDiaryView.value
+  lastSyncedDiaryView = currentDiaryView.value
 }
 
 function closeDiary() {
+  if (mapViewSyncTimer) {
+    clearTimeout(mapViewSyncTimer)
+    mapViewSyncTimer = null
+  }
   currentDiary.value = null
+  currentDiaryView.value = null
+  lastSyncedDiaryView = null
   diaryPlaces.value = []
+}
+
+function handleMapViewChange(view) {
+  const diaryId = currentDiary.value?.id
+  if (!diaryId || !view) return
+  currentDiaryView.value = view
+  if (!shouldSyncDiaryView(view, lastSyncedDiaryView)) return
+  if (mapViewSyncTimer) clearTimeout(mapViewSyncTimer)
+  mapViewSyncTimer = setTimeout(() => {
+    apiCall({
+      type: 'update_diary_view',
+      diary_id: diaryId,
+      center: view.center,
+      zoom: view.zoom
+    }).then((res) => {
+      if (res?.status === '0') {
+        lastSyncedDiaryView = view
+      }
+    }).catch(() => undefined)
+    mapViewSyncTimer = null
+  }, 220)
 }
 
 async function addPlaceToDiary(markerData) {
@@ -195,6 +273,14 @@ async function updatePlaceType(placeId, typecode) {
 
 onMounted(() => {
   fetchDiaries()
+  preloadAmap().catch(() => undefined)
+})
+
+onUnmounted(() => {
+  if (mapViewSyncTimer) {
+    clearTimeout(mapViewSyncTimer)
+    mapViewSyncTimer = null
+  }
 })
 </script>
 
