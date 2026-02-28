@@ -681,6 +681,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   position: relative;
+  color: var(--color-text);
 }
 
 #amap {
@@ -694,10 +695,10 @@ onUnmounted(() => {
   left: 16px;
   width: min(340px, calc(100vw - 32px));
   max-height: calc(100% - 86px);
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--color-background-soft) 92%, transparent);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 28px var(--color-shadow);
   border-radius: 12px;
   z-index: 100;
   transform: translateX(0);
@@ -725,7 +726,7 @@ onUnmounted(() => {
 .sidebar-content::-webkit-scrollbar { width: 6px; }
 .sidebar-content::-webkit-scrollbar-track { background: transparent; }
 .sidebar-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.16);
+  background: color-mix(in srgb, var(--color-text-sub-sub) 50%, transparent);
   border-radius: 999px;
 }
 
@@ -737,9 +738,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--color-background-soft) 92%, transparent);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid #ececec;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .back-btn {
@@ -748,7 +749,7 @@ onUnmounted(() => {
   cursor: pointer;
   display: flex;
   align-items: center;
-  color: #666;
+  color: var(--color-text-sub);
   padding: 4px;
   border-radius: 6px;
   transition: background 0.2s, color 0.2s;
@@ -756,15 +757,15 @@ onUnmounted(() => {
 }
 
 .back-btn:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--color-light-light);
+  color: var(--color-text);
 }
 
 .sidebar-diary-name {
   flex: 1;
   font-size: 15px;
   font-weight: 500;
-  color: #333;
+  color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -774,7 +775,7 @@ onUnmounted(() => {
   background: none;
   border: none;
   font-size: 18px;
-  color: #999;
+  color: var(--color-text-sub-sub);
   cursor: pointer;
   width: 28px;
   height: 28px;
@@ -787,8 +788,8 @@ onUnmounted(() => {
 }
 
 .sidebar-close-btn:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--color-light-light);
+  color: var(--color-text);
 }
 
 .sidebar-section {
@@ -811,19 +812,19 @@ onUnmounted(() => {
 .sidebar-section-title h3 {
   margin: 0;
   font-size: 16px;
-  color: #333;
+  color: var(--color-text);
 }
 
 .sidebar-section-title.clickable { cursor: pointer; }
 
 .favorites-toggle {
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-sub-sub);
 }
 
 .sidebar-divider {
   height: 1px;
-  background: #efefef;
+  background: var(--color-border);
   margin: 12px 16px;
 }
 
@@ -836,13 +837,15 @@ onUnmounted(() => {
 .search-box input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-background-soft);
   outline: none;
 }
 
-.search-box input:focus { border-color: #2ecc71; }
+.search-box input:focus { border-color: var(--color-primary); }
 
 .search-btn {
   display: flex;
@@ -851,8 +854,8 @@ onUnmounted(() => {
   padding: 8px 12px;
   border: none;
   border-radius: 6px;
-  background: #2ecc71;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-background);
   cursor: pointer;
 }
 
@@ -870,15 +873,15 @@ onUnmounted(() => {
 
 .search-result-item {
   padding: 10px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background 0.2s;
 }
 
-.search-result-item:hover { background: #f9f9f9; }
+.search-result-item:hover { background: var(--color-light-light); }
 
-.result-name { font-size: 14px; font-weight: 500; color: #333; }
-.result-address { font-size: 12px; color: #999; margin-top: 2px; }
+.result-name { font-size: 14px; font-weight: 500; color: var(--color-text); }
+.result-address { font-size: 12px; color: var(--color-text-sub-sub); margin-top: 2px; }
 
 .favorites-list {
   max-height: 300px;
@@ -892,15 +895,15 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   transition: background 0.2s;
 }
 
-.favorite-item:hover { background: #f9f9f9; }
-.favorite-name { font-size: 14px; color: #333; }
-.favorite-address { font-size: 12px; color: #999; margin-top: 2px; }
-.no-favorites { text-align: center; color: #999; padding: 20px 0; font-size: 13px; }
+.favorite-item:hover { background: var(--color-light-light); }
+.favorite-name { font-size: 14px; color: var(--color-text); }
+.favorite-address { font-size: 12px; color: var(--color-text-sub-sub); margin-top: 2px; }
+.no-favorites { text-align: center; color: var(--color-text-sub-sub); padding: 20px 0; font-size: 13px; }
 
 .remove-favorite {
   display: flex;
@@ -926,15 +929,16 @@ onUnmounted(() => {
   top: 70px;
   left: 16px;
   z-index: 99;
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--color-background-soft) 95%, transparent);
   backdrop-filter: blur(10px);
   border: none;
   width: 36px;
   height: 36px;
   border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px var(--color-shadow);
   font-size: 14px;
+  color: var(--color-text);
   transition: opacity 0.3s ease;
   display: flex;
   align-items: center;
@@ -948,10 +952,11 @@ onUnmounted(() => {
   top: 70px;
   right: 20px;
   width: 320px;
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--color-background-soft) 95%, transparent);
   backdrop-filter: blur(10px);
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px var(--color-shadow);
+  border: 1px solid var(--color-border);
   z-index: 100;
   overflow: hidden;
 }
@@ -961,37 +966,38 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.marker-info-header h3 { margin: 0; font-size: 16px; color: #333; }
+.marker-info-header h3 { margin: 0; font-size: 16px; color: var(--color-text); }
 
 .close-btn {
   background: none;
   border: none;
   font-size: 20px;
   cursor: pointer;
-  color: #999;
+  color: var(--color-text-sub-sub);
 }
 
 .marker-info-content { padding: 16px; }
-.marker-info-content p { margin: 6px 0; font-size: 13px; color: #666; }
+.marker-info-content p { margin: 6px 0; font-size: 13px; color: var(--color-text-sub); }
 
 .marker-actions { margin-top: 12px; display: flex; gap: 8px; }
 
 .action-btn {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: white;
+  background: var(--color-background-soft);
+  color: var(--color-text);
   cursor: pointer;
   font-size: 13px;
   transition: all 0.2s;
 }
 
-.action-btn:hover { background: #f9f9f9; }
-.action-btn.active { background: #2ecc71; color: white; border-color: #2ecc71; }
+.action-btn:hover { background: var(--color-light-light); }
+.action-btn.active { background: var(--color-primary); color: var(--color-background); border-color: var(--color-primary); }
 
 .marker-type-section { margin-top: 10px; }
 .marker-type-label { margin-bottom: 6px !important; }
@@ -1007,13 +1013,13 @@ onUnmounted(() => {
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  border: 2px solid #e0e0e0;
-  background: #fff;
+  border: 2px solid var(--color-border);
+  background: var(--color-background-soft);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #888;
+  color: var(--color-text-sub-sub);
   transition: all 0.2s;
 }
 
@@ -1049,8 +1055,8 @@ onUnmounted(() => {
   display: block;
   border-radius: 8px;
   overflow: hidden;
-  background: #f5f5f5;
-  border: 1px solid #ececec;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
   aspect-ratio: 1 / 1;
 }
 
@@ -1066,7 +1072,7 @@ onUnmounted(() => {
 }
 
 .marker-description-empty {
-  color: #999 !important;
+  color: var(--color-text-sub-sub) !important;
 }
 
 .marker-description-editable {
@@ -1074,13 +1080,13 @@ onUnmounted(() => {
   text-decoration: underline;
   text-decoration-style: dashed;
   text-underline-offset: 3px;
-  text-decoration-color: rgba(153, 153, 153, 0.45);
+  text-decoration-color: color-mix(in srgb, var(--color-text-sub-sub) 45%, transparent);
   transition: color 0.2s ease, text-decoration-color 0.2s ease;
 }
 
 .marker-description-editable:hover {
-  text-decoration-color: rgba(46, 204, 113, 0.95);
-  color: #2ecc71 !important;
+  text-decoration-color: color-mix(in srgb, var(--color-primary) 90%, transparent);
+  color: var(--color-primary) !important;
 }
 
 .marker-description-editor {
@@ -1091,23 +1097,24 @@ onUnmounted(() => {
   width: 100%;
   resize: vertical;
   min-height: 70px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 13px;
-  color: #444;
+  color: var(--color-text);
+  background: var(--color-background-soft);
   outline: none;
   box-sizing: border-box;
 }
 
 .marker-description-input:focus {
-  border-color: #2ecc71;
+  border-color: var(--color-primary);
 }
 
 .marker-description-count {
   margin-top: 6px;
   font-size: 11px;
-  color: #999;
+  color: var(--color-text-sub-sub);
   text-align: right;
 }
 
@@ -1119,9 +1126,9 @@ onUnmounted(() => {
 }
 
 .marker-description-btn {
-  border: 1px solid #d8d8d8;
-  background: #fff;
-  color: #666;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-soft);
+  color: var(--color-text-sub);
   border-radius: 6px;
   padding: 4px 10px;
   font-size: 12px;
@@ -1129,13 +1136,13 @@ onUnmounted(() => {
 }
 
 .marker-description-btn.primary {
-  border-color: #2ecc71;
-  background: #2ecc71;
-  color: #fff;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-background);
 }
 
 .marker-description-btn.subtle {
-  background: #fafafa;
+  background: var(--color-background);
 }
 
 @media (max-width: 768px) {
@@ -1153,9 +1160,9 @@ onUnmounted(() => {
 .search-results::-webkit-scrollbar,
 .favorites-list::-webkit-scrollbar { width: 6px; }
 .search-results::-webkit-scrollbar-track,
-.favorites-list::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+.favorites-list::-webkit-scrollbar-track { background: var(--color-background); border-radius: 3px; }
 .search-results::-webkit-scrollbar-thumb,
-.favorites-list::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+.favorites-list::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-text-sub-sub) 80%, transparent); border-radius: 3px; }
 .search-results::-webkit-scrollbar-thumb:hover,
-.favorites-list::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+.favorites-list::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color-text-sub) 80%, transparent); }
 </style>
