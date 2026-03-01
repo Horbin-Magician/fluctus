@@ -40,30 +40,59 @@ class TravelView(views.View):
             trip_time = payload.get('trip_time', '').strip()
             summary = payload.get('summary', '').strip()
             if diary_id and name:
-                db.updateDiary(diary_id, username, name, trip_time, summary)
-                return_dict['status'] = '0'
+                if db.updateDiary(diary_id, username, name, trip_time, summary):
+                    return_dict['status'] = '0'
 
         elif type == 'delete_diary':
             diary_id = payload.get('diary_id')
             if diary_id:
-                db.deleteDiary(diary_id, username)
+                if db.deleteDiary(diary_id, username):
+                    return_dict['status'] = '0'
+                else:
+                    return_dict['message'] = '仅创建者可删除日记'
+
+        elif type == 'get_diary_sharers':
+            diary_id = payload.get('diary_id')
+            if diary_id and db.isDiaryOwner(diary_id, username):
+                sharers = db.getDiarySharers(diary_id)
+                candidates = [name for name in db.getAllUsers() if name != username]
                 return_dict['status'] = '0'
+                return_dict['data'] = {
+                    'sharers': sharers,
+                    'candidates': candidates
+                }
+
+        elif type == 'update_diary_sharers':
+            diary_id = payload.get('diary_id')
+            sharers = payload.get('sharers')
+            if diary_id and isinstance(sharers, list):
+                result = db.replaceDiarySharers(diary_id, username, sharers)
+                if result.get('ok'):
+                    return_dict['status'] = '0'
+                else:
+                    return_dict['invalid_users'] = result.get('invalid_users', [])
+                    if result.get('reason') == 'forbidden':
+                        return_dict['message'] = '仅创建者可管理共享者'
+                    elif result.get('reason') == 'invalid_users':
+                        return_dict['message'] = '存在无效共享用户名'
 
         elif type == 'get_places':
             diary_id = payload.get('diary_id')
             if diary_id:
                 data = db.getPlaces(diary_id, username)
                 view = db.getDiaryView(diary_id, username)
-                return_dict['status'] = '0'
-                return_dict['data'] = data
-                return_dict['view'] = view
+                if db.canAccessDiary(diary_id, username):
+                    return_dict['status'] = '0'
+                    return_dict['data'] = data
+                    return_dict['view'] = view
 
         elif type == 'get_diary_view':
             diary_id = payload.get('diary_id')
             if diary_id:
                 data = db.getDiaryView(diary_id, username)
-                return_dict['status'] = '0'
-                return_dict['data'] = data
+                if db.canAccessDiary(diary_id, username):
+                    return_dict['status'] = '0'
+                    return_dict['data'] = data
 
         elif type == 'update_diary_view':
             diary_id = payload.get('diary_id')

@@ -38,8 +38,12 @@
               <div class="diary-info">
                 <div class="diary-name">{{ diary.name }}</div>
                 <div class="diary-meta">
-                  <span v-if="diary.trip_time" class="diary-trip-time">出行时间：{{ diary.trip_time }}</span>
-                  <span class="diary-time">{{ diary.updated_at }}</span>
+                  <div v-if="diary.trip_time" class="diary-meta-row diary-trip-time">出行时间：{{ diary.trip_time }}</div>
+                  <div class="diary-meta-row">
+                    <span class="diary-access">创建者：{{ diary.username }}</span>
+                    <span class="diary-access">共享者：{{ formatSharersText(diary.sharers) }}</span>
+                    <div class="diary-meta-row diary-time">{{ diary.updated_at }}</div>
+                  </div>
                 </div>
                 <div v-if="diary.summary" class="diary-summary">{{ diary.summary }}</div>
               </div>
@@ -52,7 +56,7 @@
                     <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
                   </svg>
                 </button>
-                <button class="delete-btn" title="删除日记" @click.stop="confirmDelete(diary)">
+                <button v-if="diary.can_delete" class="delete-btn" title="删除日记" @click.stop="confirmDelete(diary)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                     stroke-linejoin="round">
@@ -73,6 +77,8 @@
         <LazyMapContainer
           :places="diaryPlaces"
           :diary-name="currentDiary.name"
+          :diary-owner="currentDiary.username || ''"
+          :diary-sharers="currentDiary.sharers || []"
           :diary-trip-time="currentDiary.trip_time || ''"
           :diary-summary="currentDiary.summary || ''"
           :initial-view="currentDiaryView"
@@ -137,6 +143,16 @@
           :autosize="{ minRows: 2, maxRows: 4 }"
           placeholder="旅行简介（可选）"
         />
+        <n-select
+          v-if="editingDiary?.can_manage_share"
+          v-model:value="editingDiarySharers"
+          multiple
+          filterable
+          clearable
+          tag
+          :options="diaryShareCandidates"
+          placeholder="添加共享者（输入用户名后回车）"
+        />
       </div>
     </n-modal>
 
@@ -153,7 +169,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { NModal, NInput, NDatePicker, useMessage, NIcon, NSpin } from 'naive-ui'
+import { NModal, NInput, NDatePicker, NSelect, useMessage, NIcon, NSpin } from 'naive-ui'
 import { Bookmarks as BookmarksIcon } from "@vicons/ionicons5"
 import ajax from '@/api/ajax'
 
@@ -176,6 +192,8 @@ const editingDiary = ref(null)
 const editingDiaryName = ref('')
 const editingDiaryStartDate = ref(null)
 const editingDiarySummary = ref('')
+const editingDiarySharers = ref([])
+const diaryShareCandidates = ref([])
 const deletingDiary = ref(null)
 const currentDiaryView = ref(null)
 const loadingDiaries = ref(false)
@@ -239,6 +257,11 @@ function formatDateValue(value) {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function formatSharersText(sharers) {
+  if (!Array.isArray(sharers) || sharers.length === 0) return '无'
+  return sharers.join('、')
 }
 
 function formatTripTimeByStartDate(startValue, dayCount = 1) {
@@ -437,17 +460,37 @@ function handleCancelCreate() {
 }
 
 function confirmDelete(diary) {
+  if (!diary?.can_delete) {
+    message.warning('仅创建者可删除日记')
+    return
+  }
   deletingDiary.value = diary
   showDeleteModal.value = true
 }
 
-function startEdit(diary) {
+async function startEdit(diary) {
   if (!diary) return
   const parsedStartDate = parseStartDateFromTripTime(diary?.trip_time)
   editingDiary.value = diary
   editingDiaryName.value = diary?.name || ''
   editingDiaryStartDate.value = parsedStartDate
   editingDiarySummary.value = diary?.summary || ''
+  editingDiarySharers.value = []
+  diaryShareCandidates.value = []
+  if (diary?.can_manage_share) {
+    const shareRes = await apiCall({ type: 'get_diary_sharers', diary_id: diary.id })
+    if (shareRes?.status === '0') {
+      const sharers = Array.isArray(shareRes?.data?.sharers) ? shareRes.data.sharers : []
+      const candidates = Array.isArray(shareRes?.data?.candidates) ? shareRes.data.candidates : []
+      editingDiarySharers.value = sharers
+      diaryShareCandidates.value = candidates.map((username) => ({
+        label: username,
+        value: username
+      }))
+    } else {
+      message.error('加载共享者失败，请稍后重试')
+    }
+  }
   showEditModal.value = true
 }
 
@@ -456,6 +499,8 @@ function resetEditForm() {
   editingDiaryName.value = ''
   editingDiaryStartDate.value = null
   editingDiarySummary.value = ''
+  editingDiarySharers.value = []
+  diaryShareCandidates.value = []
   showEditModal.value = false
 }
 
@@ -487,6 +532,22 @@ async function handleEdit() {
     summary
   })
   if (res?.status === '0') {
+    if (editingDiary.value?.can_manage_share) {
+      const shareRes = await apiCall({
+        type: 'update_diary_sharers',
+        diary_id: editingDiary.value.id,
+        sharers: editingDiarySharers.value
+      })
+      if (shareRes?.status !== '0') {
+        if (Array.isArray(shareRes?.invalid_users) && shareRes.invalid_users.length > 0) {
+          message.error(`共享者不存在：${shareRes.invalid_users.join('、')}`)
+        } else {
+          message.error(shareRes?.message || '更新共享者失败，请稍后重试')
+        }
+        editingDiaryLoading.value = false
+        return false
+      }
+    }
     if (currentDiary.value?.id === diaryId) {
       currentDiary.value = {
         ...currentDiary.value,
@@ -935,9 +996,16 @@ onUnmounted(() => {
 
 .diary-meta {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.diary-meta-row {
+  display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 4px;
 }
 
 .diary-time {
@@ -948,6 +1016,11 @@ onUnmounted(() => {
 .diary-trip-time {
   font-size: 12px;
   color: var(--color-text-sub);
+}
+
+.diary-access {
+  font-size: 12px;
+  color: var(--color-text-sub-sub);
 }
 
 .diary-summary {

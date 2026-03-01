@@ -6,6 +6,8 @@
       ref="sidebarRef"
       :sidebar-open="sidebarOpen"
       :diary-name="diaryName"
+      :diary-owner="diaryOwner"
+      :diary-sharers="diarySharers"
       :diary-trip-time="diaryTripTime"
       :diary-summary="diarySummary"
       :search-keyword="searchKeyword"
@@ -94,6 +96,8 @@ const renderIconSvgContent = (iconComp) => {
 const props = defineProps({
   places: { type: Array, default: () => [] },
   diaryName: { type: String, default: '' },
+  diaryOwner: { type: String, default: '' },
+  diarySharers: { type: Array, default: () => [] },
   diaryTripTime: { type: String, default: '' },
   diarySummary: { type: String, default: '' },
   initialView: { type: Object, default: null }
