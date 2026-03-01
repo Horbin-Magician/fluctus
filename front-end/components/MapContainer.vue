@@ -118,9 +118,12 @@ const DROP_DAY_APPEND_TRIGGER_PX = 18;
 
 let map = null;
 let AMap = null;
-let placeSearch = null;
+let placeSearchGlobal = null;
+let placeSearchNearby = null;
 let autoComplete = null;
 let autocompleteTimer = null;
+let autocompleteRequestVersion = 0;
+let searchRequestVersion = 0;
 let suggestionSelectionTimer = null;
 let isSelectingSuggestion = false;
 let drivingService = null;
@@ -186,6 +189,176 @@ const displayDays = computed(() => {
 });
 
 const routePlaces = computed(() => localPlaces.value);
+
+const getPlaceTimestamp = (place) => {
+  if (!place) return Number.NEGATIVE_INFINITY;
+  const createdAt = typeof place.created_at === 'string' ? Date.parse(place.created_at.replace(' ', 'T')) : Number.NaN;
+  if (Number.isFinite(createdAt)) return createdAt;
+  const id = Number(place.id);
+  return Number.isFinite(id) ? id : Number.NEGATIVE_INFINITY;
+};
+
+const getLastAddedPlaceAnchor = () => {
+  if (!Array.isArray(routePlaces.value) || routePlaces.value.length === 0) return null;
+  const latestPlace = routePlaces.value.reduce((latest, place) => {
+    if (!latest) return place;
+    return getPlaceTimestamp(place) > getPlaceTimestamp(latest) ? place : latest;
+  }, null);
+  if (!latestPlace) return null;
+  const lng = Number(latestPlace.lng);
+  const lat = Number(latestPlace.lat);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  return { lng, lat };
+};
+
+const toRadians = (value) => value * Math.PI / 180;
+
+const getDistanceMeters = (locationA, locationB) => {
+  if (!locationA || !locationB) return Number.POSITIVE_INFINITY;
+
+  const parsePoint = (location) => {
+    if (!location) return null;
+    if (typeof location.lng === 'number' && typeof location.lat === 'number') {
+      return { lng: location.lng, lat: location.lat };
+    }
+    if (typeof location.getLng === 'function' && typeof location.getLat === 'function') {
+      return { lng: location.getLng(), lat: location.getLat() };
+    }
+    return null;
+  };
+
+  const pointA = parsePoint(locationA);
+  const pointB = parsePoint(locationB);
+  if (!pointA || !pointB) return Number.POSITIVE_INFINITY;
+
+  const lng1 = Number(pointA.lng);
+  const lat1 = Number(pointA.lat);
+  const lng2 = Number(pointB.lng);
+  const lat2 = Number(pointB.lat);
+  if (![lng1, lat1, lng2, lat2].every(Number.isFinite)) return Number.POSITIVE_INFINITY;
+  const earthRadius = 6371000;
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadius * c;
+};
+
+const prioritizeResultsByLastAddedPlace = (results) => {
+  if (!Array.isArray(results) || results.length <= 1) return Array.isArray(results) ? results : [];
+  const anchor = getLastAddedPlaceAnchor();
+  if (!anchor) return [...results];
+  return [...results].sort((a, b) => {
+    const distanceA = getDistanceMeters(a?.location, anchor);
+    const distanceB = getDistanceMeters(b?.location, anchor);
+    if (distanceA === distanceB) return 0;
+    if (!Number.isFinite(distanceA)) return 1;
+    if (!Number.isFinite(distanceB)) return -1;
+    return distanceA - distanceB;
+  });
+};
+
+const mapPoiToSearchResult = (poi) => ({
+  id: poi.id,
+  name: poi.name,
+  address: poi.address || '',
+  location: normalizeLocation(poi.location),
+  tel: poi.tel || '',
+  type: poi.type || '',
+  typecode: poi.typecode || '',
+  description: getPlaceDescription(poi),
+  images: normalizeImages(poi.photos || poi.images)
+});
+
+const getPoiMergeKey = (poi) => {
+  if (!poi) return '';
+  if (poi.id) return `id:${poi.id}`;
+  return `na:${poi.name || ''}:${poi.address || ''}`;
+};
+
+const mergeNearbyFirstPois = (nearbyPois, globalPois) => {
+  const merged = [];
+  const exists = new Set();
+  [...nearbyPois, ...globalPois].forEach((poi) => {
+    const key = getPoiMergeKey(poi);
+    if (!key || exists.has(key)) return;
+    exists.add(key);
+    merged.push(poi);
+  });
+  return merged;
+};
+
+const applyPoiResults = (pois) => {
+  clearSearchMarkers();
+  searchResults.value = [];
+  if (!Array.isArray(pois) || pois.length === 0) return;
+  const mapped = pois.map(mapPoiToSearchResult);
+  searchResults.value = prioritizeResultsByLastAddedPlace(mapped);
+  addSearchMarkers(searchResults.value);
+};
+
+const searchPoisByKeyword = (keyword) => {
+  return new Promise((resolve) => {
+    if (!placeSearchGlobal || !keyword) {
+      resolve([]);
+      return;
+    }
+    placeSearchGlobal.search(keyword, (status, result) => {
+      if (status !== 'complete' || !result?.poiList?.pois?.length) {
+        resolve([]);
+        return;
+      }
+      resolve(result.poiList.pois);
+    });
+  });
+};
+
+const searchNearbyPois = (keyword, anchor, radius = 30000) => {
+  return new Promise((resolve) => {
+    if (!placeSearchNearby || !keyword || !anchor || typeof placeSearchNearby.searchNearBy !== 'function') {
+      resolve([]);
+      return;
+    }
+    placeSearchNearby.searchNearBy(keyword, [anchor.lng, anchor.lat], radius, (status, result) => {
+      if (status !== 'complete' || !result?.poiList?.pois?.length) {
+        resolve([]);
+        return;
+      }
+      resolve(result.poiList.pois);
+    });
+  });
+};
+
+const searchTipsByKeyword = (keyword) => {
+  return new Promise((resolve) => {
+    if (!autoComplete || !keyword) {
+      resolve([]);
+      return;
+    }
+    autoComplete.search(keyword, (status, result) => {
+      if (status !== 'complete' || !result?.tips?.length) {
+        resolve([]);
+        return;
+      }
+      const tips = result.tips
+        .filter((tip) => tip?.name)
+        .map((tip) => ({
+          id: tip.id || tip.uid || `${tip.name}-${tip.address || ''}`,
+          name: tip.name,
+          address: [tip.district, tip.address].filter(Boolean).join(' '),
+          location: normalizeLocation(tip.location),
+          tel: '',
+          type: tip.type || '',
+          typecode: tip.typecode || '',
+          description: getPlaceDescription(tip),
+          images: normalizeImages(tip.photos || tip.images),
+          isTip: true,
+        }));
+      resolve(tips);
+    });
+  });
+};
 
 const hasValidInitialView = () => hasValidView(props.initialView);
 
@@ -255,7 +428,10 @@ const initMap = () => {
 };
 
 const initSearch = () => {
-  placeSearch = new AMap.PlaceSearch({
+  placeSearchGlobal = new AMap.PlaceSearch({
+    pageSize: 10, city: "全国", citylimit: false, panel: false
+  });
+  placeSearchNearby = new AMap.PlaceSearch({
     pageSize: 10, city: "全国", citylimit: false, panel: false
   });
   autoComplete = new AMap.AutoComplete({
@@ -316,61 +492,67 @@ const endSuggestionSelection = () => {
   }, 180);
 };
 
-const handleAutocomplete = (keyword) => {
-  if (!autoComplete || !keyword) return;
-  autoComplete.search(keyword, (status, result) => {
-    if (status !== 'complete' || !result?.tips?.length) {
-      handleSuggestionFallback(keyword);
+const handleAutocomplete = async (keyword) => {
+  const requestVersion = autocompleteRequestVersion + 1;
+  autocompleteRequestVersion = requestVersion;
+  if (!keyword) return;
+
+  const globalTips = await searchTipsByKeyword(keyword);
+  if (requestVersion !== autocompleteRequestVersion) return;
+
+  const anchor = getLastAddedPlaceAnchor();
+  if (anchor) {
+    const nearbyPois = await searchNearbyPois(keyword, anchor, 30000);
+    if (requestVersion !== autocompleteRequestVersion) return;
+    const nearbySuggestions = Array.isArray(nearbyPois)
+      ? nearbyPois.slice(0, 8).map(mapPoiToSearchResult)
+      : [];
+    const mergedSuggestions = mergeNearbyFirstPois(nearbySuggestions, globalTips);
+    if (mergedSuggestions.length > 0) {
+      searchResults.value = prioritizeResultsByLastAddedPlace(mergedSuggestions);
       return;
     }
-    const tips = result.tips
-      .filter(tip => tip?.name)
-      .map(tip => ({
-        id: tip.id || tip.uid || `${tip.name}-${tip.address || ''}`,
-        name: tip.name,
-        address: [tip.district, tip.address].filter(Boolean).join(' '),
-        location: normalizeLocation(tip.location),
-        tel: '',
-        type: tip.type || '',
-        typecode: tip.typecode || '',
-        description: getPlaceDescription(tip),
-        images: normalizeImages(tip.photos || tip.images),
-        isTip: true,
-      }));
-    if (tips.length === 0) {
-      handleSuggestionFallback(keyword);
-      return;
-    }
-    searchResults.value = tips;
-  });
+    handleSuggestionFallback(keyword);
+    return;
+  }
+
+  if (globalTips.length > 0) {
+    searchResults.value = prioritizeResultsByLastAddedPlace(globalTips);
+    return;
+  }
+  handleSuggestionFallback(keyword);
 };
 
 const handleSuggestionFallback = (keyword) => {
-  if (!placeSearch || !keyword) {
+  if (!placeSearchGlobal || !keyword) {
     searchResults.value = [];
     return;
   }
-  placeSearch.search(keyword, (status, result) => {
+  placeSearchGlobal.search(keyword, (status, result) => {
     if (status !== 'complete' || !result?.poiList?.pois?.length) {
       searchResults.value = [];
       return;
     }
-    searchResults.value = result.poiList.pois.slice(0, 8).map(poi => ({
-      id: poi.id,
-      name: poi.name,
-      address: poi.address || '',
-      location: normalizeLocation(poi.location),
-      tel: poi.tel || '',
-      type: poi.type || '',
-      typecode: poi.typecode || '',
-      description: getPlaceDescription(poi),
-      images: normalizeImages(poi.photos || poi.images)
-    }));
+    const fallbackResults = result.poiList.pois.slice(0, 8).map(mapPoiToSearchResult);
+    searchResults.value = prioritizeResultsByLastAddedPlace(fallbackResults);
   });
 };
 
 const normalizeLocation = (location) => {
   if (!location) return null;
+  if (Array.isArray(location) && location.length >= 2) {
+    const lng = Number(location[0]);
+    const lat = Number(location[1]);
+    if (Number.isFinite(lng) && Number.isFinite(lat)) {
+      return { lng, lat };
+    }
+  }
+  if (typeof location === 'string') {
+    const parts = location.split(',').map((item) => Number(item.trim()));
+    if (parts.length >= 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1])) {
+      return { lng: parts[0], lat: parts[1] };
+    }
+  }
   if (typeof location.lng === 'number' && typeof location.lat === 'number') {
     return { lng: location.lng, lat: location.lat };
   }
@@ -402,26 +584,18 @@ const getPlaceDescription = (place) => {
   return text ? text.trim() : '';
 };
 
-const handleSearch = () => {
+const handleSearch = async () => {
   if (!searchKeyword.value.trim()) return;
-  placeSearch.search(searchKeyword.value, (status, result) => {
-    if (status === 'complete') onSearchComplete(result);
-  });
-};
-
-const onSearchComplete = (result) => {
-  clearSearchMarkers();
-  searchResults.value = [];
-  if (result.poiList?.pois) {
-    searchResults.value = result.poiList.pois.map(poi => ({
-      id: poi.id, name: poi.name, address: poi.address,
-      location: poi.location, tel: poi.tel,
-      type: poi.type, typecode: poi.typecode,
-      description: getPlaceDescription(poi),
-      images: normalizeImages(poi.photos || poi.images)
-    }));
-    addSearchMarkers(searchResults.value);
-  }
+  const requestVersion = searchRequestVersion + 1;
+  searchRequestVersion = requestVersion;
+  const keyword = searchKeyword.value.trim();
+  const anchor = getLastAddedPlaceAnchor();
+  const nearbyPois = anchor ? await searchNearbyPois(keyword, anchor) : [];
+  if (requestVersion !== searchRequestVersion) return;
+  const globalPois = await searchPoisByKeyword(keyword);
+  if (requestVersion !== searchRequestVersion) return;
+  const mergedPois = mergeNearbyFirstPois(nearbyPois, globalPois);
+  applyPoiResults(mergedPois);
 };
 
 const selectSearchResult = (result) => {
@@ -987,6 +1161,8 @@ watch(() => props.initialView, () => {
 
 onUnmounted(() => {
   drivingRouteRequestVersion += 1;
+  autocompleteRequestVersion += 1;
+  searchRequestVersion += 1;
   if (autocompleteTimer) clearTimeout(autocompleteTimer);
   if (suggestionSelectionTimer) clearTimeout(suggestionSelectionTimer);
   document.removeEventListener('click', handleDocumentClick);
