@@ -139,7 +139,9 @@ function onDropdownSelect(key) {
 
 function logout() {
   userlogout()
+  showLogoutModal.value = false
   message.success("注销成功！")
+  navigateTo('/')
 }
 </script>
 

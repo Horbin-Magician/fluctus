@@ -1,8 +1,5 @@
 from flask import views,request,jsonify
-import json
 import requests
-
-from tools.dbControllers.BaseDbController import BaseDbController
 
 
 class BaiduView(views.View):

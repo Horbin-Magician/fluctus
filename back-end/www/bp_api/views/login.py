@@ -1,5 +1,4 @@
 from flask import views,request,session,jsonify
-import json
 
 from tools.dbControllers.BaseDbController import BaseDbController
 from www.decorators import rate_limit

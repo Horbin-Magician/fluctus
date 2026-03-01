@@ -154,9 +154,12 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { NModal, NInput, NDatePicker, useMessage, NIcon, NSpin } from 'naive-ui'
-import { checkLoginPromise } from '@/utils/userUtils'
 import { Bookmarks as BookmarksIcon } from "@vicons/ionicons5"
 import ajax from '@/api/ajax'
+
+definePageMeta({
+  middleware: 'auth'
+})
 
 const message = useMessage()
 
@@ -393,11 +396,6 @@ async function apiCall(data) {
 async function fetchDiaries() {
   if (loadingDiaries.value) return
   loadingDiaries.value = true
-  const loggedIn = await checkLoginPromise()
-  if (!loggedIn) {
-    loadingDiaries.value = false
-    return
-  }
   const res = await apiCall({ type: 'get_diaries' })
   if (res?.status === '0') {
     diaries.value = Array.isArray(res.data) ? res.data : []

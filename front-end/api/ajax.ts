@@ -3,6 +3,24 @@
  * 函数返回promise对象
  */
 import type { HttpMethod, ApiResponse } from './types'
+import storageUtils from '@/utils/storageUtils'
+
+function getResponseStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object') return null
+  const candidate = error as { status?: number; statusCode?: number; response?: { status?: number } }
+  if (typeof candidate.status === 'number') return candidate.status
+  if (typeof candidate.statusCode === 'number') return candidate.statusCode
+  if (candidate.response && typeof candidate.response.status === 'number') return candidate.response.status
+  return null
+}
+
+function handleUnauthorizedResponse() {
+  if (!import.meta.client) return
+  storageUtils.removeUser()
+  if (window.location.pathname !== '/') {
+    window.location.href = '/'
+  }
+}
 
 /**
  * 通用Ajax请求函数
@@ -41,8 +59,12 @@ export default async function ajax<T = unknown>(
 
     return response
   } catch (error) {
-    // TODO: 统一处理错误
-    console.error('Ajax request failed:', error)
+    const status = getResponseStatus(error)
+    if (status === 401) {
+      handleUnauthorizedResponse()
+    } else {
+      console.error('Ajax request failed:', error)
+    }
     throw error
   }
 }
