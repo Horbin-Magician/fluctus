@@ -50,6 +50,7 @@ const message = useMessage()
 const router_items = reactive({
   '首页': { path: '/', shown: true },
   '日历': { path: '/calendar', shown: !!storageUtils.getUser().username },
+  '旅记': { path: '/travel', shown: !!storageUtils.getUser().username },
   '博客': { path: '/blog', shown: true }
 })
 
