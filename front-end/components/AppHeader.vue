@@ -14,8 +14,8 @@
     </div>
     <div class="left-bar">
       <div class="nav">
-        <div v-for="(value, key) in router_items" :key="key">
-          <NuxtLink v-if="value.shown" :to="value.path" class="link"> {{ key }} </NuxtLink>
+        <div v-for="item in navItems" :key="item.path">
+          <NuxtLink v-if="item.shown" :to="item.path" class="link"> {{ item.label }} </NuxtLink>
         </div>
         <div v-if="!nav_track_left.startsWith('-')" class="nav-track" />
       </div>
@@ -36,27 +36,26 @@
 </template>
 
 <script setup>
-import { h, ref, reactive, onMounted, onUnmounted } from 'vue'
+import { h, ref, computed, onMounted, onUnmounted } from 'vue'
 import { NModal, NDropdown, NIcon, useMessage } from 'naive-ui'
 import { SettingsOutline, LogOutOutline } from '@vicons/ionicons5'
 import '@/assets/icons/iconfont'
 import { userlogin, checkLogin, userlogout, addUpdateFun } from '@/utils/userUtils';
-import storageUtils from '@/utils/storageUtils';
 import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
 const message = useMessage()
 
-const router_items = reactive({
-  '首页': { path: '/', shown: true },
-  '日历': { path: '/calendar', shown: !!storageUtils.getUser().username },
-  '旅记': { path: '/travel', shown: !!storageUtils.getUser().username },
-  '博客': { path: '/blog', shown: true }
-})
+const navItems = computed(() => [
+  { label: '首页', path: '/', shown: true },
+  { label: '日历', path: '/calendar', shown: isLoggedIn.value },
+  { label: '旅记', path: '/travel', shown: isLoggedIn.value },
+  { label: '博客', path: '/blog', shown: true }
+])
 
-const navLinks = computed(() => Object.entries(router_items)
-  .filter(([_, v]) => v.shown)
-  .map(([_, value]) => [value.path.slice(1)]))
+const navLinks = computed(() => navItems.value
+  .filter((item) => item.shown)
+  .map((item) => [item.path.slice(1)]))
 const now_page = computed(() => route.path.slice(1).split('/')[0])
 const isMobile = ref(false)
 const nav_link_width = computed(() => isMobile.value ? '56px' : '70px')
@@ -114,9 +113,7 @@ onUnmounted(() => {
 })
 
 addUpdateFun(() => {
-  const loggedIn = checkLogin()
-  isLoggedIn.value = loggedIn
-  router_items['日历'].shown = loggedIn
+  isLoggedIn.value = !!checkLogin()
 })
 
 function onLogin() {
