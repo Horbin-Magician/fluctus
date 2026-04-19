@@ -172,9 +172,10 @@ class TravelDbController():
                      ON d.ID = s.DIARY_ID AND s.USERNAME = ?
                    WHERE d.USERNAME = ? OR s.USERNAME = ?
                    ORDER BY d.UPDATED_AT DESC'''
-        cursor = self.c.execute(query, [username, username, username, username])
+                # fetchall first to avoid reusing the same cursor in nested queries
+        rows = self.c.execute(query, [username, username, username, username]).fetchall()
         diaries = []
-        for row in cursor:
+        for row in rows:
             diary_id = row[0]
             is_owner = bool(row[10])
             diaries.append({
